@@ -1,6 +1,10 @@
 import yaml
 
 
+DEFAULT_PROCESSFILE_DIR = '/var/run/dib2cloud'
+DEFAULT_BUILDLOG_DIR = '/var/log/dib2cloud/builds'
+
+
 class ConfigDict(dict):
     def __init__(self, properties, sub_kwargs):
         self.properties = properties
@@ -33,17 +37,35 @@ class Config(ConfigDict):
                       config_dict.get('diskimages', [])]
         providers = [Provider(**x) for x in
                      config_dict.get('providers', [])]
-
+        processfile_dir = config_dict.get('processfile_dir',
+                                          DEFAULT_PROCESSFILE_DIR)
+        buildlog_dir = config_dict.get('buildlog_dir',
+                                       DEFAULT_BUILDLOG_DIR)
+    
         return Config(diskimages=diskimages,
-                      providers=providers)
+                      providers=providers,
+                      processfile_dir=processfile_dir,
+                      buildlog_dir=buildlog_dir)
 
     def __init__(self, **kwargs):
         super(Config, self).__init__(['diskimages',
-                                      'providers'], kwargs)
+                                      'providers',
+                                      'processfile_dir',
+                                      'buildlog_dir'], kwargs)
 
     def to_yaml_file(self, path):
         with open(path, 'w') as fh:
             yaml.safe_dump(self, fh)
+
+    def get_diskimage_by_name(self, name):
+        ret = None
+        for di in self.get('diskimages', []):
+            if di['name'] == name:
+                if ret is not None:
+                    raise ValueError('Multiple diskimages with name %s', name)
+                else:
+                    ret = di
+        return ret
 
 
 yaml.representer.SafeRepresenter.add_representer(

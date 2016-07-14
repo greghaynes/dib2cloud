@@ -27,7 +27,9 @@ except ImportError:
     import mock
 
 import fixtures
+import shutil
 
+from dib2cloud import app
 from dib2cloud import config
 from dib2cloud import cmd
 from dib2cloud.tests import base
@@ -63,7 +65,8 @@ class ConfigFixture(ConfigFragmentFixture):
     _configs = {
         'simple': config.Config(
                     diskimages=[DiskimageConfigFixture.get('simple')],
-                    providers=[ProviderConfigFixture.get('simple')])
+                    providers=[ProviderConfigFixture.get('simple')],
+        )
     }
 
     def _setUp(self):
@@ -71,10 +74,20 @@ class ConfigFixture(ConfigFragmentFixture):
         self.path = self.tempfile.name
         self.addCleanup(self._remove_tempfile)
         self.config = self.get(self.fixture_name)
+        self.config['processfile_dir'] = tempfile.mkdtemp()
+        self.addCleanup(self._cleanup_processfile_dir)
+        self.config['buildlog_dir'] = tempfile.mkdtemp()
+        self.addCleanup(self._cleanup_buildlog_dir)
         self.config.to_yaml_file(self.path)
 
     def _remove_tempfile(self):
         os.unlink(self.path)
+
+    def _cleanup_processfile_dir(self):
+        shutil.rmtree(self.config['processfile_dir'])
+
+    def _cleanup_buildlog_dir(self):
+        shutil.rmtree(self.config['buildlog_dir'])
 
 
 class TestConfig(base.TestCase):
@@ -97,3 +110,10 @@ class TestCmd(base.TestCase):
         self.assertEqual(self.mock_app.mock_calls,
                          [mock.call(config_path='some_config'),
                           mock.call().build_image('test_diskimage')])
+
+
+class TestApp(base.TestCase):
+    def test_build_image_simple(self):
+        config_path = self.useFixture(ConfigFixture('simple')).path
+        d2c = app.App(config_path=config_path)
+        d2c.build_image('test_diskimage')
