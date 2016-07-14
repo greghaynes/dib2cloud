@@ -21,10 +21,15 @@ Tests for `dib2cloud` module.
 
 import os
 import tempfile
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 import fixtures
 
 from dib2cloud import config
+from dib2cloud import cmd
 from dib2cloud.tests import base
 
 
@@ -79,6 +84,19 @@ class TestConfig(base.TestCase):
         self.assertEqual(config_fxtr.config, loaded_config)
 
 
-class TestDib2cloud(base.TestCase):
-    def test_something(self):
-        pass
+class TestCmd(base.TestCase):
+    def setUp(self):
+        super(TestCmd, self).setUp()
+        config_fxtr = self.useFixture(ConfigFixture('simple'))
+        self.config_path = config_fxtr.path
+
+        self.mock_app = mock.Mock()
+        self.useFixture(fixtures.MonkeyPatch('dib2cloud.app.App',
+                                             self.mock_app))
+
+    def test_build_image(self):
+        cmd.main(['dib2cloud', '--config', self.config_path,
+                  'build-image', 'test_diskimage'])
+        self.assertEqual(self.mock_app.mock_calls,
+                         [mock.call(config_path=self.config_path),
+                          mock.call().build_image('test_diskimage')])
