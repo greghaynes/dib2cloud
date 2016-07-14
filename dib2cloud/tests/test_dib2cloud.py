@@ -87,16 +87,13 @@ class TestConfig(base.TestCase):
 class TestCmd(base.TestCase):
     def setUp(self):
         super(TestCmd, self).setUp()
-        config_fxtr = self.useFixture(ConfigFixture('simple'))
-        self.config_path = config_fxtr.path
-
         self.mock_app = mock.Mock()
         self.useFixture(fixtures.MonkeyPatch('dib2cloud.app.App',
                                              self.mock_app))
 
     def test_build_image(self):
-        cmd.main(['dib2cloud', '--config', self.config_path,
+        cmd.main(['dib2cloud', '--config', 'some_config',
                   'build-image', 'test_diskimage'])
         self.assertEqual(self.mock_app.mock_calls,
-                         [mock.call(config_path=self.config_path),
+                         [mock.call(config_path='some_config'),
                           mock.call().build_image('test_diskimage')])
