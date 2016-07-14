@@ -113,7 +113,23 @@ class TestCmd(base.TestCase):
 
 
 class TestApp(base.TestCase):
+    def setUp(self):
+        super(TestApp, self).setUp()
+
+        class FakePopen(object):
+            pid = 123
+
+        self.popen_cmd = None
+        def mock_popen(cmd, stderr, stdout):
+            self.popen_cmd = cmd
+            return FakePopen()
+
+        self.useFixture(fixtures.MonkeyPatch('subprocess.Popen', mock_popen))
+
     def test_build_image_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
         d2c.build_image('test_diskimage')
+        self.assertEqual(['disk-image-create',
+                          'element1',
+                          'element2'], self.popen_cmd)

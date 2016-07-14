@@ -47,13 +47,16 @@ class DibProcess(object):
 
     def exec_dib(self):
         with open(self.log_path, 'w') as log_fh:
-            subprocess.Popen(self.dib_cmd, stdout=log_fh, stderr=log_fh)
+            self.pid = subprocess.Popen(self.dib_cmd,
+                                        stdout=log_fh,
+                                        stderr=log_fh).pid
+        return self.pid
 
     def run(self):
         if self.pid:
             raise RuntimeError('Image build for image uuid %s with name %s has'
                                ' already been run.', self.uuid, self.name)
-        self.pid = self.exec_dib()
+        self.exec_dib()
         self.to_yaml_file(self.processfile_path)
 
 
