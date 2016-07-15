@@ -23,6 +23,14 @@ def get_dib_processes(processfile_dir):
     return processes
 
 
+def assert_dir(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+
 class DibError(object):
     OutputMissing = 0
     StillRunning = 1
@@ -48,11 +56,7 @@ class DibProcess(object):
 
     @property
     def processfile_path(self):
-        try:
-            os.makedirs(self.pf_dir)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
+        assert_dir(self.pf_dir)
         return os.path.join(self.pf_dir, '%s.processfile' % self.uuid)
 
     @property
@@ -63,16 +67,14 @@ class DibProcess(object):
     @property
     def log_path(self):
         log_dir = os.path.join(self.log_dir, self.image_config['name'])
-        try:
-            os.makedirs(log_dir)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        return os.path.join(log_dir, self.uuid)
+        assert_dir(log_dir)
+        return os.path.join(log_dir, '%s.log' % self.uuid)
 
     @property
     def dest_path(self):
-        return os.path.join(self.images_dir, '%s' % (self.uuid))
+        dest_dir = os.path.join(self.images_dir, self.name)
+        assert_dir(dest_dir)
+        return os.path.join(dest_dir, '%s' % (self.uuid))
 
     @property
     def dest_paths(self):
