@@ -16,9 +16,10 @@ def gen_uuid():
 def get_dib_processes(processfile_dir):
     processes = []
     for pf in os.listdir(processfile_dir):
-        processes.append(DibProcess.from_processfile(
-            os.path.join(processfile_dir, pf)
-        ))
+        if pf.endswith('processfile'):
+            processes.append(DibProcess.from_processfile(
+                os.path.join(processfile_dir, pf)
+            ))
     return processes
 
 

@@ -1,9 +1,11 @@
+import os
+
 import yaml
 
 
-DEFAULT_PROCESSFILE_DIR = '/var/run/dib2cloud'
-DEFAULT_BUILDLOG_DIR = '/var/log/dib2cloud/builds'
-DEFAULT_IMAGES_DIR = '/var/lib/dib2cloud/images'
+DEFAULT_PROCESSFILE_DIR = os.path.expanduser('~/.dib2cloud')
+DEFAULT_BUILDLOG_DIR = os.path.expanduser('~/.dib2cloud')
+DEFAULT_IMAGES_DIR = os.path.expanduser('~/.dib2cloud')
 
 
 class ConfigDict(dict):
