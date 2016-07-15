@@ -15,10 +15,17 @@ def dib_summary_dict(dib, status_str=None):
                 status_str = 'building'
             else:
                 status_str = 'error'
+
+    if dib.is_running():
+        pid = dib.pid
+    else:
+        pid = None
+
     return {
         'name': dib.name,
         'status': status_str,
-        'id': dib.uuid
+        'id': dib.uuid,
+        'pid': pid
     }
 
 
