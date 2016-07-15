@@ -42,23 +42,23 @@ Install dib2cloud from git
 Usage
 -----
 
-To create an ubuntu image
+Create an ubuntu image
 
 .. code:: bash
 
     dib2cloud build dib2cloud-ubuntu-debootstrap
 
-To view builds
+Vew builds
 
 .. code:: bash
 
     dib2cloud list-builds
 
-To delete a build
+Delete a build
 
 .. code:: bash
 
-    dib2cloud  delete-build <id>
+    dib2cloud delete-build <id>
 
 
 Configuration
