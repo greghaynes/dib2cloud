@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 import uuid
 
 import yaml
@@ -11,18 +12,34 @@ def gen_uuid():
     return uuid.uuid4().hex
 
 
+def get_dib_processes(log_dir, processfile_dir):
+    processes = []
+    for pf in os.listdir(processfile_dir):
+        processes.append(DibProcess.from_processfile(
+            log_dir, os.path.join(processfile_dir, pf)
+        ))
+    return processes
+
+
+class DibError(object):
+    OutputMissing = 0
+
+
 class DibProcess(object):
     @staticmethod
     def from_processfile(log_dir, path):
         with open(path, 'r') as fh:
-            return DibProcess(log_dir, **yaml.safe_load(fh))
+            return DibProcess(log_dir,
+                              os.path.dirname(path),
+                              **yaml.safe_load(fh))
 
     def __init__(self, log_dir, processfile_dir, image_config, uuid, pid=None):
         self.log_dir = log_dir
         self.pf_dir = processfile_dir
         self.image_config = image_config
         self.uuid = uuid
-        self.pid = None
+        self.pid = pid
+        self._proc = None
 
     @property
     def processfile_path(self):
@@ -47,9 +64,10 @@ class DibProcess(object):
 
     def exec_dib(self):
         with open(self.log_path, 'w') as log_fh:
-            self.pid = subprocess.Popen(self.dib_cmd,
-                                        stdout=log_fh,
-                                        stderr=log_fh).pid
+            self._proc = subprocess.Popen(self.dib_cmd,
+                                          stdout=log_fh,
+                                          stderr=log_fh)
+            self.pid = self._proc.pid
         return self.pid
 
     def run(self):
@@ -58,6 +76,21 @@ class DibProcess(object):
                                ' already been run.', self.uuid, self.name)
         self.exec_dib()
         self.to_yaml_file(self.processfile_path)
+
+    def wait(self, timeout=None):
+        if self._proc is not None:
+            self._proc.wait(timeout)
+        else:
+            while True:
+                try:
+                    os.kill(self.pid, 0)
+                except OSError:
+                    time.sleep(.5)
+                else:
+                    return True
+
+    def succeeded(self):
+        return True
 
 
 class App(object):
@@ -70,3 +103,8 @@ class App(object):
                              self.config.get_diskimage_by_name(name),
                              gen_uuid())
         process.run()
+        return process
+
+    def get_local_images(self):
+        return get_dib_processes(self.config['buildlog_dir'],
+                                 self.config['processfile_dir'])

@@ -133,3 +133,15 @@ class TestApp(base.TestCase):
         self.assertEqual(['disk-image-create',
                           'element1',
                           'element2'], self.popen_cmd)
+
+    def test_get_local_images_empty(self):
+        config_path = self.useFixture(ConfigFixture('simple')).path
+        d2c = app.App(config_path=config_path)
+        self.assertEqual([], d2c.get_local_images())
+
+    def test_get_local_images_simple_missing_output(self):
+        config_path = self.useFixture(ConfigFixture('simple')).path
+        d2c = app.App(config_path=config_path)
+        d2c.build_image('test_diskimage')
+        dibs = d2c.get_local_images()
+        self.assertEqual(1, len(dibs))
