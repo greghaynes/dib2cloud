@@ -6,7 +6,7 @@ At the command line::
 
     $ pip install dib2cloud
 
-Or, if you have virtualenvwrapper installed::
+Or, if you have irtualenv installed::
 
-    $ mkvirtualenv dib2cloud
-    $ pip install dib2cloud
+    $ virtualenv dib2cloud-venv
+    $ ./dib2cloud-venv/bin/pip install dib2cloud

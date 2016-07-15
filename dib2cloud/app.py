@@ -146,3 +146,18 @@ class App(object):
 
     def get_local_images(self):
         return get_dib_processes(self.config['processfile_dir'])
+
+    def delete_image(self, image_id):
+        pf_path = os.path.join(self.config['processfile_dir'],
+                               '%s.processfile' % image_id)
+        if not os.path.exists(pf_path):
+            raise ValueError('No build with id %s found' % image_id)
+        build = DibProcess.from_processfile(pf_path)
+        for path in build.dest_paths:
+            try:
+                os.unlink(path)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+        os.unlink(pf_path)
+        return build
