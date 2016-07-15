@@ -31,13 +31,21 @@ class Provider(ConfigDict):
 
 class Config(ConfigDict):
     @staticmethod
-    def from_yaml_file(path):
-        config_dict = None
-        with open(path, 'r') as fh:
-            config_dict = yaml.safe_load(fh)
+    def get_default_diskimages():
+        return [Diskimage(name='dib2cloud-ubuntu-debootstrap',
+                          elements=['ubuntu-minimal', 'simple-init'])]
+
+    @classmethod
+    def from_yaml_file(cls, path):
+        config_dict = {}
+
+        if os.path.exists(path):
+            with open(path, 'r') as fh:
+                config_dict = yaml.safe_load(fh)
 
         diskimages = [Diskimage(**x) for x in
                       config_dict.get('diskimages', [])]
+        diskimages.extend(cls.get_default_diskimages())
         providers = [Provider(**x) for x in
                      config_dict.get('providers', [])]
         processfile_dir = config_dict.get('processfile_dir',
