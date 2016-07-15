@@ -25,7 +25,9 @@ def dib_summary_dict(dib, status_str=None):
         'name': dib.name,
         'status': status_str,
         'id': dib.uuid,
-        'pid': pid
+        'pid': pid,
+        'log': dib.log_path,
+        'destinations': dib.dest_paths
     }
 
 
