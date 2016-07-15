@@ -46,7 +46,7 @@ To create an ubuntu image
 
 .. code:: bash
 
-    dib2cloud build ubuntu-debootstrap
+    dib2cloud build dib2cloud-ubuntu-debootstrap
 
 To view builds
 
