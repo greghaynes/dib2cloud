@@ -59,3 +59,23 @@ To delete a build
 .. code:: bash
 
     dib2cloud  delete-build <id>
+
+
+Configuration
+-------------
+
+By default configuration is specified in `/etc/dib2cloud.yaml`. It can also
+be specified on the command line using the `--config-path` argument.
+
+Images are specified in the configuration and several images begining
+with `dib2cloud_` are always available.
+
+Example configuration:
+
+.. code:: yaml
+
+    diskimages:
+      - name: myimage
+        elements:
+          - fedora-minimal
+          - vm
