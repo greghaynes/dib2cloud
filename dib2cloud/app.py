@@ -12,32 +12,34 @@ def gen_uuid():
     return uuid.uuid4().hex
 
 
-def get_dib_processes(log_dir, processfile_dir):
+def get_dib_processes(processfile_dir):
     processes = []
     for pf in os.listdir(processfile_dir):
         processes.append(DibProcess.from_processfile(
-            log_dir, os.path.join(processfile_dir, pf)
+            os.path.join(processfile_dir, pf)
         ))
     return processes
 
 
 class DibError(object):
     OutputMissing = 0
+    StillRunning = 1
 
 
 class DibProcess(object):
     @staticmethod
-    def from_processfile(log_dir, path):
+    def from_processfile(path):
         with open(path, 'r') as fh:
-            return DibProcess(log_dir,
-                              os.path.dirname(path),
-                              **yaml.safe_load(fh))
+            return DibProcess(**yaml.safe_load(fh))
 
-    def __init__(self, log_dir, processfile_dir, image_config, uuid, pid=None):
+    def __init__(self, log_dir, pf_dir, images_dir,
+                 image_config, uuid, output_formats, pid=None):
         self.log_dir = log_dir
-        self.pf_dir = processfile_dir
+        self.pf_dir = pf_dir
+        self.images_dir = images_dir
         self.image_config = image_config
         self.uuid = uuid
+        self.output_formats = output_formats
         self.pid = pid
         self._proc = None
 
@@ -47,7 +49,8 @@ class DibProcess(object):
 
     @property
     def dib_cmd(self):
-        return ['disk-image-create'] + self.image_config['elements']
+        return ['disk-image-create', '-t', ','.join(self.output_formats),
+                '-o', self.dest_path] + self.image_config['elements']
 
     @property
     def log_path(self):
@@ -55,10 +58,20 @@ class DibProcess(object):
         os.makedirs(log_dir)
         return os.path.join(log_dir, self.uuid)
 
+    @property
+    def dest_path(self):
+        return os.path.join(self.images_dir, '%s' % (self.uuid))
+
+    @property
+    def dest_paths(self):
+        return [os.path.join(self.images_dir, '%s.%s' % (self.uuid, x))
+                for x in self.output_formats]
+
     def to_yaml_file(self, path):
         with open(path, 'w') as fh:
             out = {}
-            for attr in ('image_config', 'uuid', 'pid'):
+            for attr in ('log_dir', 'pf_dir', 'images_dir',
+                         'image_config', 'uuid', 'output_formats', 'pid'):
                 out[attr] = getattr(self, attr)
             yaml.safe_dump(out, fh)
 
@@ -82,15 +95,24 @@ class DibProcess(object):
             self._proc.wait(timeout)
         else:
             while True:
-                try:
-                    os.kill(self.pid, 0)
-                except OSError:
-                    time.sleep(.5)
-                else:
+                if self.is_running():
                     return True
+                else:
+                    time.sleep(.5)
+
+    def is_running(self):
+        try:
+            os.kill(self.pid, 0)
+        except OSError:
+            return False
+        return True
 
     def succeeded(self):
-        return True
+        if self.is_running():
+            return False, DibError.StillRunning
+        if not all(map(os.path.exists, self.dest_paths)):
+            return False, DibError.OutputMissing
+        return True, None
 
 
 class App(object):
@@ -98,13 +120,17 @@ class App(object):
         self.config = config.Config.from_yaml_file(config_path)
 
     def build_image(self, name):
+        # TODO(greghaynes) determine output_formats based on provider
+        output_formats = ['qcow2']
+
         process = DibProcess(self.config['buildlog_dir'],
                              self.config['processfile_dir'],
+                             self.config['images_dir'],
                              self.config.get_diskimage_by_name(name),
-                             gen_uuid())
+                             gen_uuid(),
+                             output_formats)
         process.run()
         return process
 
     def get_local_images(self):
-        return get_dib_processes(self.config['buildlog_dir'],
-                                 self.config['processfile_dir'])
+        return get_dib_processes(self.config['processfile_dir'])

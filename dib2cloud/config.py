@@ -3,6 +3,7 @@ import yaml
 
 DEFAULT_PROCESSFILE_DIR = '/var/run/dib2cloud'
 DEFAULT_BUILDLOG_DIR = '/var/log/dib2cloud/builds'
+DEFAULT_IMAGES_DIR = '/var/lib/dib2cloud/images'
 
 
 class ConfigDict(dict):
@@ -41,17 +42,21 @@ class Config(ConfigDict):
                                           DEFAULT_PROCESSFILE_DIR)
         buildlog_dir = config_dict.get('buildlog_dir',
                                        DEFAULT_BUILDLOG_DIR)
-    
+        images_dir = config_dict.get('images_dir',
+                                     DEFAULT_IMAGES_DIR)
+
         return Config(diskimages=diskimages,
                       providers=providers,
                       processfile_dir=processfile_dir,
-                      buildlog_dir=buildlog_dir)
+                      buildlog_dir=buildlog_dir,
+                      images_dir=images_dir)
 
     def __init__(self, **kwargs):
         super(Config, self).__init__(['diskimages',
                                       'providers',
                                       'processfile_dir',
-                                      'buildlog_dir'], kwargs)
+                                      'buildlog_dir',
+                                      'images_dir'], kwargs)
 
     def to_yaml_file(self, path):
         with open(path, 'w') as fh:

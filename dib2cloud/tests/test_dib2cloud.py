@@ -30,8 +30,8 @@ import fixtures
 import shutil
 
 from dib2cloud import app
-from dib2cloud import config
 from dib2cloud import cmd
+from dib2cloud import config
 from dib2cloud.tests import base
 
 
@@ -64,8 +64,8 @@ class DiskimageConfigFixture(ConfigFragmentFixture):
 class ConfigFixture(ConfigFragmentFixture):
     _configs = {
         'simple': config.Config(
-                    diskimages=[DiskimageConfigFixture.get('simple')],
-                    providers=[ProviderConfigFixture.get('simple')],
+            diskimages=[DiskimageConfigFixture.get('simple')],
+            providers=[ProviderConfigFixture.get('simple')],
         )
     }
 
@@ -78,6 +78,8 @@ class ConfigFixture(ConfigFragmentFixture):
         self.addCleanup(self._cleanup_processfile_dir)
         self.config['buildlog_dir'] = tempfile.mkdtemp()
         self.addCleanup(self._cleanup_buildlog_dir)
+        self.config['images_dir'] = tempfile.mkdtemp()
+        self.addCleanup(self._cleanup_images_dir)
         self.config.to_yaml_file(self.path)
 
     def _remove_tempfile(self):
@@ -88,6 +90,9 @@ class ConfigFixture(ConfigFragmentFixture):
 
     def _cleanup_buildlog_dir(self):
         shutil.rmtree(self.config['buildlog_dir'])
+
+    def _cleanup_images_dir(self):
+        shutil.rmtree(self.config['images_dir'])
 
 
 class TestConfig(base.TestCase):
@@ -120,7 +125,26 @@ class TestApp(base.TestCase):
             pid = 123
 
         self.popen_cmd = None
+
         def mock_popen(cmd, stderr, stdout):
+            destnext = False
+            dest = None
+            typenext = False
+            type_ = None
+            for arg in cmd:
+                if destnext:
+                    destnext = False
+                    dest = arg
+                if typenext:
+                    typenext = False
+                    type_ = arg
+                if arg == '-o':
+                    destnext = True
+                elif arg == '-t':
+                    typenext = True
+            if dest:
+                type_ = type_ or 'qcow2'
+                open('%s.%s' % (dest, type_), 'w')
             self.popen_cmd = cmd
             return FakePopen()
 
@@ -129,10 +153,10 @@ class TestApp(base.TestCase):
     def test_build_image_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        d2c.build_image('test_diskimage')
-        self.assertEqual(['disk-image-create',
-                          'element1',
-                          'element2'], self.popen_cmd)
+        dib = d2c.build_image('test_diskimage')
+        self.assertEqual(['disk-image-create', '-t', 'qcow2', '-o',
+                          dib.dest_path, 'element1', 'element2'],
+                         self.popen_cmd)
 
     def test_get_local_images_empty(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
@@ -142,6 +166,18 @@ class TestApp(base.TestCase):
     def test_get_local_images_simple_missing_output(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
+        dib = d2c.build_image('test_diskimage')
+        for path in dib.dest_paths:
+            os.unlink(path)
+        dibs = d2c.get_local_images()
+        self.assertEqual(1, len(dibs))
+        self.assertEqual((False, app.DibError.OutputMissing),
+                         dibs[0].succeeded())
+
+    def test_get_local_images_simple(self):
+        config_path = self.useFixture(ConfigFixture('simple')).path
+        d2c = app.App(config_path=config_path)
         d2c.build_image('test_diskimage')
         dibs = d2c.get_local_images()
         self.assertEqual(1, len(dibs))
+        self.assertEqual((True, None), dibs[0].succeeded())
