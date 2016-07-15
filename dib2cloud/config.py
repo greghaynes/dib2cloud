@@ -32,7 +32,7 @@ class Provider(ConfigDict):
 class Config(ConfigDict):
     @staticmethod
     def get_default_diskimages():
-        return { 'dib2cloud-ubuntu-debootstrap': Diskimage(
+        return {'dib2cloud-ubuntu-debootstrap': Diskimage(
             name='dib2cloud-ubuntu-debootstrap',
             elements=['ubuntu-minimal', 'simple-init']
         )}

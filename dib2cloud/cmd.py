@@ -5,10 +5,15 @@ import sys
 from dib2cloud import app
 
 
+# This gives us a convenient place to monkeypatch for testing
+def output(out):
+    print(out)
+
+
 def dib_summary_dict(dib, status_str=None):
     if status_str is None:
         status = dib.succeeded()
-        if status[0] == True:
+        if status[0] is True:
             status_str = 'built'
         else:
             if status[1] == app.DibError.StillRunning:
@@ -33,17 +38,18 @@ def dib_summary_dict(dib, status_str=None):
 
 def cmd_build(d2c, args):
     dib = d2c.build_image(args.image_name)
-    print(json.dumps(dib_summary_dict(dib)))
+    out = json.dumps(dib_summary_dict(dib))
+    output(out.encode('utf-8'))
 
 
 def cmd_list_builds(d2c, args):
     dibs = d2c.get_local_images()
-    print(json.dumps(list(map(dib_summary_dict, dibs))))
+    output(json.dumps(list(map(dib_summary_dict, dibs))))
 
 
 def cmd_delete_build(d2c, args):
     dib = d2c.delete_image(args.image_id)
-    print(json.dumps(dib_summary_dict(dib, 'deleted')))
+    output(json.dumps(dib_summary_dict(dib, 'deleted')))
 
 
 def main(argv=None):

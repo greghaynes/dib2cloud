@@ -19,12 +19,10 @@ test_dib2cloud
 Tests for `dib2cloud` module.
 """
 
+from io import BytesIO
+import json
 import os
 import tempfile
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 import fixtures
 import shutil
@@ -102,19 +100,49 @@ class TestConfig(base.TestCase):
         self.assertEqual(config_fxtr.config, loaded_config)
 
 
+class BaseFake(object):
+    def __init__(self, *args, **kwargs):
+        self.init_args = args
+        self.init_kwargs = kwargs
+
+
+class FakeBuild(BaseFake):
+    name = 'fake_diskimage'
+    uuid = 'fake-uuid'
+    log_path = '/some/logfile'
+    dest_paths = ['/some/dest']
+
+    def succeeded(self):
+        return (False, app.DibError.OutputMissing)
+
+    def is_running(self):
+        return False
+
+
+class FakeApp(BaseFake):
+    def build_image(self, name):
+        return FakeBuild(name)
+
+
 class TestCmd(base.TestCase):
     def setUp(self):
         super(TestCmd, self).setUp()
-        self.mock_app = mock.Mock()
-        self.useFixture(fixtures.MonkeyPatch('dib2cloud.app.App',
-                                             self.mock_app))
+        self.useFixture(fixtures.MonkeyPatch('dib2cloud.app.App', FakeApp))
+        self.out = BytesIO()
+        self.useFixture(fixtures.MonkeyPatch('dib2cloud.cmd.output',
+                                             self.out.write))
 
-    def test_build_image(self):
+    def test_build_image_exec(self):
         cmd.main(['dib2cloud', '--config', 'some_config',
                   'build', 'test_diskimage'])
-        self.assertEqual(self.mock_app.mock_calls,
-                         [mock.call(config_path='some_config'),
-                          mock.call().build_image('test_diskimage')])
+        out = json.loads(self.out.getvalue().decode('utf-8'))
+        self.assertEqual({
+            'destinations': ['/some/dest'],
+            'id': 'fake-uuid',
+            'log': '/some/logfile',
+            'name': 'fake_diskimage',
+            'pid': None,
+            'status': 'error'}, out)
 
 
 class TestApp(base.TestCase):

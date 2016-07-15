@@ -140,6 +140,7 @@ class App(object):
     def build_image(self, name):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
+        config = None
         if name.startswith('dib2cloud_'):
             config = config.Config.get_default_diskimages()[name]
         else:
