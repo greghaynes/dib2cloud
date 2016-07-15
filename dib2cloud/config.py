@@ -67,9 +67,11 @@ class Config(ConfigDict):
         for di in self.get('diskimages', []):
             if di['name'] == name:
                 if ret is not None:
-                    raise ValueError('Multiple diskimages with name %s', name)
+                    raise ValueError('Multiple diskimages with name %s' % name)
                 else:
                     ret = di
+        if ret is None:
+            raise ValueError('No image with name %s found in config' % name)
         return ret
 
 

@@ -1,3 +1,4 @@
+import errno
 import os
 import subprocess
 import time
@@ -32,8 +33,9 @@ class DibProcess(object):
         with open(path, 'r') as fh:
             return DibProcess(**yaml.safe_load(fh))
 
-    def __init__(self, log_dir, pf_dir, images_dir,
+    def __init__(self, name, log_dir, pf_dir, images_dir,
                  image_config, uuid, output_formats, pid=None):
+        self.name = name
         self.log_dir = log_dir
         self.pf_dir = pf_dir
         self.images_dir = images_dir
@@ -45,6 +47,11 @@ class DibProcess(object):
 
     @property
     def processfile_path(self):
+        try:
+            os.makedirs(self.pf_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
         return os.path.join(self.pf_dir, '%s.processfile' % self.uuid)
 
     @property
@@ -55,7 +62,11 @@ class DibProcess(object):
     @property
     def log_path(self):
         log_dir = os.path.join(self.log_dir, self.image_config['name'])
-        os.makedirs(log_dir)
+        try:
+            os.makedirs(log_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
         return os.path.join(log_dir, self.uuid)
 
     @property
@@ -70,7 +81,7 @@ class DibProcess(object):
     def to_yaml_file(self, path):
         with open(path, 'w') as fh:
             out = {}
-            for attr in ('log_dir', 'pf_dir', 'images_dir',
+            for attr in ('name', 'log_dir', 'pf_dir', 'images_dir',
                          'image_config', 'uuid', 'output_formats', 'pid'):
                 out[attr] = getattr(self, attr)
             yaml.safe_dump(out, fh)
@@ -123,7 +134,8 @@ class App(object):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
 
-        process = DibProcess(self.config['buildlog_dir'],
+        process = DibProcess(name,
+                             self.config['buildlog_dir'],
                              self.config['processfile_dir'],
                              self.config['images_dir'],
                              self.config.get_diskimage_by_name(name),
