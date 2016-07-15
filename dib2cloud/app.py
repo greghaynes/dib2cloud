@@ -71,14 +71,18 @@ class DibProcess(object):
         return os.path.join(log_dir, '%s.log' % self.uuid)
 
     @property
-    def dest_path(self):
+    def dest_dir(self):
         dest_dir = os.path.join(self.images_dir, self.name)
         assert_dir(dest_dir)
-        return os.path.join(dest_dir, '%s' % (self.uuid))
+        return dest_dir
+
+    @property
+    def dest_path(self):
+        return os.path.join(self.dest_dir, '%s' % (self.uuid))
 
     @property
     def dest_paths(self):
-        return [os.path.join(self.images_dir, '%s.%s' % (self.uuid, x))
+        return [os.path.join(self.dest_dir, '%s.%s' % (self.uuid, x))
                 for x in self.output_formats]
 
     def to_yaml_file(self, path):
@@ -136,11 +140,15 @@ class App(object):
     def build_image(self, name):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
+        if name.startswith('dib2cloud_'):
+            config = config.Config.get_default_diskimages()[name]
+        else:
+            config = self.config.get_diskimage_by_name(name)
 
         process = DibProcess(self.config['buildlog_dir'],
                              self.config['processfile_dir'],
                              self.config['images_dir'],
-                             self.config.get_diskimage_by_name(name),
+                             config,
                              gen_uuid(),
                              output_formats)
         process.run()

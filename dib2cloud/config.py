@@ -32,8 +32,10 @@ class Provider(ConfigDict):
 class Config(ConfigDict):
     @staticmethod
     def get_default_diskimages():
-        return [Diskimage(name='dib2cloud-ubuntu-debootstrap',
-                          elements=['ubuntu-minimal', 'simple-init'])]
+        return { 'dib2cloud-ubuntu-debootstrap': Diskimage(
+            name='dib2cloud-ubuntu-debootstrap',
+            elements=['ubuntu-minimal', 'simple-init']
+        )}
 
     @classmethod
     def from_yaml_file(cls, path):
@@ -45,7 +47,6 @@ class Config(ConfigDict):
 
         diskimages = [Diskimage(**x) for x in
                       config_dict.get('diskimages', [])]
-        diskimages.extend(cls.get_default_diskimages())
         providers = [Provider(**x) for x in
                      config_dict.get('providers', [])]
         processfile_dir = config_dict.get('processfile_dir',

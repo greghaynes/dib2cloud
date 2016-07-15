@@ -111,7 +111,7 @@ class TestCmd(base.TestCase):
 
     def test_build_image(self):
         cmd.main(['dib2cloud', '--config', 'some_config',
-                  'build-image', 'test_diskimage'])
+                  'build', 'test_diskimage'])
         self.assertEqual(self.mock_app.mock_calls,
                          [mock.call(config_path='some_config'),
                           mock.call().build_image('test_diskimage')])
