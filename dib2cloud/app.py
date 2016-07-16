@@ -1,6 +1,5 @@
 import errno
 import os
-import subprocess
 import uuid
 
 from dib2cloud import config
@@ -10,6 +9,15 @@ from dib2cloud import util
 
 def gen_uuid():
     return uuid.uuid4().hex
+
+
+class Upload(process.ProcessTracker):
+    def __init__(self, pf_dir, uuid, pid=None):
+        super(Build, self).__init__(uuid, pf_dir, pid)
+
+    def _exec(self):
+        if os.fork() != 0:
+            return
 
 
 def get_dib_processes(processfile_dir):
@@ -29,7 +37,7 @@ class DibError(object):
     StillRunning = 1
 
 
-class Build(process.Process):
+class Build(process.ProcessTracker):
     process_properties = [
         'log_dir',
         'images_dir',
@@ -72,9 +80,9 @@ class Build(process.Process):
         return [os.path.join(self.dest_dir, '%s.%s' % (self.uuid, x))
                 for x in self.output_formats]
 
-    def _exec(self):
-        with open(self.log_path, 'w') as log_fh:
-            proc = subprocess.Popen(self.dib_cmd, stdout=log_fh, stderr=log_fh)
+    def _get_process(self):
+        log_fh = open(self.log_path, 'w')
+        proc = process.CmdProcess(self.dib_cmd, stdout=log_fh, stderr=log_fh)
         return proc
 
     def succeeded(self):

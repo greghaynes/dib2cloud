@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 
 import yaml
@@ -11,7 +12,22 @@ def from_processfile(process_type, path):
         return process_type(**yaml.safe_load(fh))
 
 
-class Process(object):
+class CmdProcess(object):
+    def __init__(self, cmd, stdout, stderr):
+        self._cmd = cmd
+        self._stdout = stdout
+        self._stderr = stderr
+        self._proc = None
+        self.pid = None
+
+    def run(self):
+        self._proc = subprocess.Popen(self._cmd,
+                                      stdout=self._stdout,
+                                      stderr=self._stderr)
+        self.pid = self._proc.pid
+
+
+class ProcessTracker(object):
     def __init__(self, uuid, pf_dir, pid=None):
         self.uuid = uuid
         self.pf_dir = pf_dir
@@ -34,7 +50,8 @@ class Process(object):
         if self.pid:
             raise RuntimeError('Image build for image uuid %s with name %s has'
                                ' already been run.', self.uuid, self.name)
-        self._proc = self._exec()
+        self._proc = self._get_process()
+        self._proc.run()
         self.pid = self._proc.pid
         self.to_yaml_file(self.processfile_path)
 
