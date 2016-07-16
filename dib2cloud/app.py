@@ -14,12 +14,13 @@ def gen_uuid():
 
 def get_dib_processes(processfile_dir):
     processes = []
-    for pf in os.listdir(processfile_dir):
-        if pf.endswith('processfile'):
-            processes.append(process.from_processfile(
-                Build,
-                os.path.join(processfile_dir, pf)
-            ))
+    if os.path.exists(processfile_dir):
+        for pf in os.listdir(processfile_dir):
+            if pf.endswith('processfile'):
+                processes.append(process.from_processfile(
+                    Build,
+                    os.path.join(processfile_dir, pf)
+                ))
     return processes
 
 
@@ -98,7 +99,7 @@ class App(object):
             config = self.config.get_diskimage_by_name(name)
 
         process = Build(self.config['buildlog_dir'],
-                        self.config['processfile_dir'],
+                        os.path.join(self.config.build_pf_dir),
                         self.config['images_dir'],
                         config,
                         gen_uuid(),
@@ -107,10 +108,10 @@ class App(object):
         return process
 
     def get_local_images(self):
-        return get_dib_processes(self.config['processfile_dir'])
+        return get_dib_processes(self.config.build_pf_dir)
 
     def delete_image(self, image_id):
-        pf_path = os.path.join(self.config['processfile_dir'],
+        pf_path = os.path.join(self.config.build_pf_dir,
                                '%s.processfile' % image_id)
         if not os.path.exists(pf_path):
             raise ValueError('No build with id %s found' % image_id)
