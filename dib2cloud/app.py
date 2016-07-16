@@ -17,7 +17,7 @@ def get_dib_processes(processfile_dir):
     for pf in os.listdir(processfile_dir):
         if pf.endswith('processfile'):
             processes.append(process.from_processfile(
-                DibProcess,
+                Build,
                 os.path.join(processfile_dir, pf)
             ))
     return processes
@@ -28,7 +28,7 @@ class DibError(object):
     StillRunning = 1
 
 
-class DibProcess(process.Process):
+class Build(process.Process):
     process_properties = [
         'log_dir',
         'images_dir',
@@ -38,7 +38,7 @@ class DibProcess(process.Process):
 
     def __init__(self, log_dir, pf_dir, images_dir,
                  image_config, uuid, output_formats, pid=None):
-        super(DibProcess, self).__init__(uuid, pf_dir, pid)
+        super(Build, self).__init__(uuid, pf_dir, pid)
         self.name = image_config['name']
         self.log_dir = log_dir
         self.images_dir = images_dir
@@ -97,12 +97,12 @@ class App(object):
         else:
             config = self.config.get_diskimage_by_name(name)
 
-        process = DibProcess(self.config['buildlog_dir'],
-                             self.config['processfile_dir'],
-                             self.config['images_dir'],
-                             config,
-                             gen_uuid(),
-                             output_formats)
+        process = Build(self.config['buildlog_dir'],
+                        self.config['processfile_dir'],
+                        self.config['images_dir'],
+                        config,
+                        gen_uuid(),
+                        output_formats)
         process.run()
         return process
 
@@ -114,7 +114,7 @@ class App(object):
                                '%s.processfile' % image_id)
         if not os.path.exists(pf_path):
             raise ValueError('No build with id %s found' % image_id)
-        build = process.from_processfile(DibProcess, pf_path)
+        build = process.from_processfile(Build, pf_path)
         if build.is_running():
             raise ValueError('Cannot delete build %s while it is running' %
                              image_id)
