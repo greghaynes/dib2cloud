@@ -1,12 +1,11 @@
 import errno
 import os
 import subprocess
-import time
 import uuid
 
-import yaml
-
 from dib2cloud import config
+from dib2cloud import process
+from dib2cloud import util
 
 
 def gen_uuid():
@@ -17,18 +16,11 @@ def get_dib_processes(processfile_dir):
     processes = []
     for pf in os.listdir(processfile_dir):
         if pf.endswith('processfile'):
-            processes.append(DibProcess.from_processfile(
+            processes.append(process.from_processfile(
+                DibProcess,
                 os.path.join(processfile_dir, pf)
             ))
     return processes
-
-
-def assert_dir(path):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
 
 
 class DibError(object):
@@ -36,28 +28,22 @@ class DibError(object):
     StillRunning = 1
 
 
-class DibProcess(object):
-    @staticmethod
-    def from_processfile(path):
-        with open(path, 'r') as fh:
-            return DibProcess(**yaml.safe_load(fh))
+class DibProcess(process.Process):
+    process_properties = [
+        'log_dir',
+        'images_dir',
+        'image_config',
+        'output_formats'
+    ]
 
     def __init__(self, log_dir, pf_dir, images_dir,
                  image_config, uuid, output_formats, pid=None):
+        super(DibProcess, self).__init__(uuid, pf_dir, pid)
         self.name = image_config['name']
         self.log_dir = log_dir
-        self.pf_dir = pf_dir
         self.images_dir = images_dir
         self.image_config = image_config
-        self.uuid = uuid
         self.output_formats = output_formats
-        self.pid = pid
-        self._proc = None
-
-    @property
-    def processfile_path(self):
-        assert_dir(self.pf_dir)
-        return os.path.join(self.pf_dir, '%s.processfile' % self.uuid)
 
     @property
     def dib_cmd(self):
@@ -67,13 +53,13 @@ class DibProcess(object):
     @property
     def log_path(self):
         log_dir = os.path.join(self.log_dir, self.image_config['name'])
-        assert_dir(log_dir)
+        util.assert_dir(log_dir)
         return os.path.join(log_dir, '%s.log' % self.uuid)
 
     @property
     def dest_dir(self):
         dest_dir = os.path.join(self.images_dir, self.name)
-        assert_dir(dest_dir)
+        util.assert_dir(dest_dir)
         return dest_dir
 
     @property
@@ -85,45 +71,10 @@ class DibProcess(object):
         return [os.path.join(self.dest_dir, '%s.%s' % (self.uuid, x))
                 for x in self.output_formats]
 
-    def to_yaml_file(self, path):
-        with open(path, 'w') as fh:
-            out = {}
-            for attr in ('log_dir', 'pf_dir', 'images_dir',
-                         'image_config', 'uuid', 'output_formats', 'pid'):
-                out[attr] = getattr(self, attr)
-            yaml.safe_dump(out, fh)
-
-    def exec_dib(self):
+    def _exec(self):
         with open(self.log_path, 'w') as log_fh:
-            self._proc = subprocess.Popen(self.dib_cmd,
-                                          stdout=log_fh,
-                                          stderr=log_fh)
-            self.pid = self._proc.pid
-        return self.pid
-
-    def run(self):
-        if self.pid:
-            raise RuntimeError('Image build for image uuid %s with name %s has'
-                               ' already been run.', self.uuid, self.name)
-        self.exec_dib()
-        self.to_yaml_file(self.processfile_path)
-
-    def wait(self, timeout=None):
-        if self._proc is not None:
-            self._proc.wait(timeout)
-        else:
-            while True:
-                if self.is_running():
-                    return True
-                else:
-                    time.sleep(.5)
-
-    def is_running(self):
-        try:
-            os.kill(self.pid, 0)
-        except OSError:
-            return False
-        return True
+            proc = subprocess.Popen(self.dib_cmd, stdout=log_fh, stderr=log_fh)
+        return proc
 
     def succeeded(self):
         if self.is_running():
@@ -163,7 +114,7 @@ class App(object):
                                '%s.processfile' % image_id)
         if not os.path.exists(pf_path):
             raise ValueError('No build with id %s found' % image_id)
-        build = DibProcess.from_processfile(pf_path)
+        build = process.from_processfile(DibProcess, pf_path)
         if build.is_running():
             raise ValueError('Cannot delete build %s while it is running' %
                              image_id)
