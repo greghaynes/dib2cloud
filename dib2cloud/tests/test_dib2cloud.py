@@ -243,5 +243,11 @@ class TestApp(base.TestCase):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
         build = d2c.build_image('test_diskimage')
+        self.assertEqual(True, all(map(os.path.exists, build.dest_paths)))
+
         del_build = d2c.delete_image('%s' % build.uuid)
         self.assertEqual(build.uuid, del_build.uuid)
+
+        self.assertEqual(False, any(map(os.path.exists, build.dest_paths)))
+        dibs = d2c.get_local_images()
+        self.assertEqual(0, len(dibs))
