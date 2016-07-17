@@ -123,6 +123,12 @@ class FakeApp(BaseFake):
     def build_image(self, name):
         return FakeBuild(name)
 
+    def get_local_images(self):
+        return [FakeBuild()]
+
+    def delete_image(eslf, image_id):
+        return FakeBuild()
+
 
 class TestCmd(base.TestCase):
     def setUp(self):
@@ -132,7 +138,7 @@ class TestCmd(base.TestCase):
         self.useFixture(fixtures.MonkeyPatch('dib2cloud.cmd.output',
                                              self.out.write))
 
-    def test_build_image_exec(self):
+    def test_build_image(self):
         cmd.main(['dib2cloud', '--config', 'some_config',
                   'build', 'test_diskimage'])
         out = json.loads(self.out.getvalue().decode('utf-8'))
@@ -143,6 +149,29 @@ class TestCmd(base.TestCase):
             'name': 'fake_diskimage',
             'pid': None,
             'status': 'error'}, out)
+
+    def test_list_builds(self):
+        cmd.main(['dib2cloud', '--config', 'some_config', 'list-builds'])
+        out = json.loads(self.out.getvalue().decode('utf-8'))
+        self.assertEqual([{
+            'destinations': ['/some/dest'],
+            'id': 'fake-uuid',
+            'log': '/some/logfile',
+            'name': 'fake_diskimage',
+            'pid': None,
+            'status': 'error'}], out)
+
+    def test_delete_build(self):
+        cmd.main(['dib2cloud', '--config', 'some_config',
+                  'delete-build', '123'])
+        out = json.loads(self.out.getvalue().decode('utf-8'))
+        self.assertEqual({
+            'destinations': ['/some/dest'],
+            'id': 'fake-uuid',
+            'log': '/some/logfile',
+            'name': 'fake_diskimage',
+            'pid': None,
+            'status': 'deleted'}, out)
 
 
 class TestApp(base.TestCase):

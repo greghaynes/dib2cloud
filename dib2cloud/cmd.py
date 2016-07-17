@@ -38,18 +38,17 @@ def dib_summary_dict(dib, status_str=None):
 
 def cmd_build(d2c, args):
     dib = d2c.build_image(args.image_name)
-    out = json.dumps(dib_summary_dict(dib))
-    output(out.encode('utf-8'))
+    output(json.dumps(dib_summary_dict(dib)).encode('utf-8'))
 
 
 def cmd_list_builds(d2c, args):
     dibs = d2c.get_local_images()
-    output(json.dumps(list(map(dib_summary_dict, dibs))))
+    output(json.dumps(list(map(dib_summary_dict, dibs))).encode('utf-8'))
 
 
 def cmd_delete_build(d2c, args):
     dib = d2c.delete_image(args.image_id)
-    output(json.dumps(dib_summary_dict(dib, 'deleted')))
+    output(json.dumps(dib_summary_dict(dib, 'deleted')).encode('utf-8'))
 
 
 def main(argv=None):
