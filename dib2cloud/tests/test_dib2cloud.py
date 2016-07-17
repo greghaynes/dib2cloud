@@ -238,3 +238,10 @@ class TestApp(base.TestCase):
         dibs = d2c.get_local_images()
         self.assertEqual(1, len(dibs))
         self.assertEqual((True, None), dibs[0].succeeded())
+
+    def test_delete_build_simple(self):
+        config_path = self.useFixture(ConfigFixture('simple')).path
+        d2c = app.App(config_path=config_path)
+        build = d2c.build_image('test_diskimage')
+        del_build = d2c.delete_image('%s' % build.uuid)
+        self.assertEqual(build.uuid, del_build.uuid)
