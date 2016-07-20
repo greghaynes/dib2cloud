@@ -21,6 +21,7 @@ Tests for `dib2cloud` module.
 
 from io import BytesIO
 import json
+import multiprocessing
 import os
 import tempfile
 
@@ -30,6 +31,7 @@ import shutil
 from dib2cloud import app
 from dib2cloud import cmd
 from dib2cloud import config
+from dib2cloud import process
 from dib2cloud.tests import base
 
 
@@ -251,3 +253,15 @@ class TestApp(base.TestCase):
         self.assertEqual(False, any(map(os.path.exists, build.dest_paths)))
         dibs = d2c.get_local_images()
         self.assertEqual(0, len(dibs))
+
+
+class TestPythonProcess(base.TestCase):
+    def test_python_process(self):
+        recv, send = multiprocessing.Pipe()
+        def put_pid(dest):
+            send.send(os.getpid())
+        proc = process.PythonProcess(put_pid, send)
+        ch_pid = proc.start()
+        queue_pid = recv.recv()
+        self.assertEqual(ch_pid, queue_pid)
+        self.assertNotEqual(queue_pid, os.getpid())

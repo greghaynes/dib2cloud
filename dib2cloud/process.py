@@ -1,5 +1,7 @@
 import os
+import signal
 import subprocess
+import sys
 import time
 
 import yaml
@@ -7,24 +9,57 @@ import yaml
 from dib2cloud import util
 
 
+def sigchld_handler(signum, frame):
+    os.waitpid(0, 0)
+
+signal.signal(signal.SIGCHLD, sigchld_handler)
+
+
 def from_processfile(process_type, path):
     with open(path, 'r') as fh:
         return process_type(**yaml.safe_load(fh))
 
 
-class CmdProcess(object):
+class Process(object):
+    def __init__(self, pid=None):
+        self.pid = None
+
+    def start(self):
+        self.pid = self._run()
+        return self.pid
+
+
+class PythonProcess(Process):
+    def __init__(self, func, *args, **kwargs):
+        super(Process, self).__init__()
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+
+    def _run(self):
+        chpid = os.fork()
+        if chpid != 0:
+            # We are the parent
+            return chpid
+        else:
+            # We are the child
+            self._func(*self._args, **self._kwargs)
+            os._exit(0)
+
+
+class CmdProcess(Process):
     def __init__(self, cmd, stdout, stderr):
+        super(Process, self).__init__()
         self._cmd = cmd
         self._stdout = stdout
         self._stderr = stderr
         self._proc = None
-        self.pid = None
 
-    def run(self):
-        self._proc = subprocess.Popen(self._cmd,
-                                      stdout=self._stdout,
-                                      stderr=self._stderr)
-        self.pid = self._proc.pid
+    def _run(self):
+        self._subproc = subprocess.Popen(self._cmd,
+                                         stdout=self._stdout,
+                                         stderr=self._stderr)
+        return self._subproc.pid
 
 
 class ProcessTracker(object):
@@ -51,7 +86,7 @@ class ProcessTracker(object):
             raise RuntimeError('Image build for image uuid %s with name %s has'
                                ' already been run.', self.uuid, self.name)
         self._proc = self._get_process()
-        self._proc.run()
+        self._proc.start()
         self.pid = self._proc.pid
         self.to_yaml_file(self.processfile_path)
 

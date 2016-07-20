@@ -12,12 +12,9 @@ def gen_uuid():
 
 
 class Upload(process.ProcessTracker):
-    def __init__(self, pf_dir, uuid, pid=None):
+    def __init__(self, pf_dir, uuid, glance_uuid=None, pid=None):
         super(Build, self).__init__(uuid, pf_dir, pid)
-
-    def _exec(self):
-        if os.fork() != 0:
-            return
+        self.glance_uuid = glance_uuid
 
 
 def get_dib_processes(processfile_dir):
