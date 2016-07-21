@@ -24,17 +24,6 @@ class Upload(process.ProcessTracker):
         self.build = Build.from_uuid(build_uuid)
 
 
-def get_dib_processes(processfile_dir):
-    processes = []
-    if os.path.exists(processfile_dir):
-        for pf in os.listdir(processfile_dir):
-            if pf.endswith('processfile'):
-                processes.append(Build.from_processfile(
-                    os.path.join(processfile_dir, pf)
-                ))
-    return processes
-
-
 class DibError(object):
     OutputMissing = 0
     StillRunning = 1
@@ -47,6 +36,17 @@ class Build(process.ProcessTracker):
         'image_config',
         'output_formats'
     ]
+
+    @staticmethod
+    def get_all(pf_dir):
+        builds = []
+        if os.path.exists(pf_dir):
+            for pf in os.listdir(pf_dir):
+                if pf.endswith('processfile'):
+                    builds.append(Build.from_processfile(
+                        os.path.join(pf_dir, pf)
+                    ))
+        return builds
 
     @staticmethod
     def from_processfile(pf):
@@ -127,7 +127,7 @@ class App(object):
         return process
 
     def get_local_images(self):
-        return get_dib_processes(self.config.build_pf_dir)
+        return Build.get_all(self.config.build_pf_dir)
 
     def delete_image(self, image_id):
         pf_path = os.path.join(self.config.build_pf_dir,
