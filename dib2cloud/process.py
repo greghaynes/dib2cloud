@@ -21,11 +21,6 @@ def sigchld_handler(signum, frame):
 signal.signal(signal.SIGCHLD, sigchld_handler)
 
 
-def from_processfile(process_type, path):
-    with open(path, 'r') as fh:
-        return process_type(**yaml.safe_load(fh))
-
-
 class Process(object):
     def __init__(self, pid=None):
         self.pid = None
@@ -74,7 +69,20 @@ class CmdProcess(Process):
         return self._subproc.pid
 
 
+def processfile_for_uuid(pf_dir, uuid):
+    return os.path.join(pf_dir, '%s.processfile' % uuid)
+
+
 class ProcessTracker(object):
+    @staticmethod
+    def from_processfile(pt_type, pf):
+        with open(pf, 'r') as fh:
+            return pt_type(**yaml.safe_load(fh))
+
+    @staticmethod
+    def from_uuid(pt_type, pf_dir, uuid):
+        return pt_type.from_processfile(processfile_for_uuid(pf_dir, uuid))
+
     def __init__(self, uuid, pf_dir, pid=None):
         self.uuid = uuid
         self.pf_dir = pf_dir
@@ -84,7 +92,7 @@ class ProcessTracker(object):
     @property
     def processfile_path(self):
         util.assert_dir(self.pf_dir)
-        return os.path.join(self.pf_dir, '%s.processfile' % self.uuid)
+        return processfile_for_uuid(self.pf_dir, self.uuid)
 
     def to_yaml_file(self, path):
         with open(path, 'w') as fh:

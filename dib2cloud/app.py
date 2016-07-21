@@ -12,9 +12,16 @@ def gen_uuid():
 
 
 class Upload(process.ProcessTracker):
-    def __init__(self, pf_dir, uuid, glance_uuid=None, pid=None):
+    process_properties = [
+        'build_uuid',
+        'glance_uuid'
+    ]
+
+    def __init__(self, pf_dir, uuid, build_uuid, glance_uuid=None, pid=None):
         super(Build, self).__init__(uuid, pf_dir, pid)
+        self.build_uuid = build_uuid
         self.glance_uuid = glance_uuid
+        self.build = Build.from_uuid(build_uuid)
 
 
 def get_dib_processes(processfile_dir):
@@ -22,8 +29,7 @@ def get_dib_processes(processfile_dir):
     if os.path.exists(processfile_dir):
         for pf in os.listdir(processfile_dir):
             if pf.endswith('processfile'):
-                processes.append(process.from_processfile(
-                    Build,
+                processes.append(Build.from_processfile(
                     os.path.join(processfile_dir, pf)
                 ))
     return processes
@@ -41,6 +47,14 @@ class Build(process.ProcessTracker):
         'image_config',
         'output_formats'
     ]
+
+    @staticmethod
+    def from_processfile(pf):
+        return process.ProcessTracker.from_processfile(Build, pf)
+
+    @staticmethod
+    def from_uuid(pf_dir, uuid):
+        return process.ProcessTracker.from_uuid(Build, pf_dir, uuid)
 
     def __init__(self, log_dir, pf_dir, images_dir,
                  image_config, uuid, output_formats, pid=None):
@@ -120,7 +134,7 @@ class App(object):
                                '%s.processfile' % image_id)
         if not os.path.exists(pf_path):
             raise ValueError('No build with id %s found' % image_id)
-        build = process.from_processfile(Build, pf_path)
+        build = Build.from_processfile(pf_path)
         if build.is_running():
             raise ValueError('Cannot delete build %s while it is running' %
                              image_id)
