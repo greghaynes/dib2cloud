@@ -44,6 +44,12 @@ class PythonProcess(Process):
         else:
             # We are the child
             self._func(*self._args, **self._kwargs)
+            # Become the session and group leader
+            os.setsid()
+            # Use _exit so we don't call any atexit registered functions of
+            # our parent. This has the downside of not flushing any stdio fd's
+            # so care must be taken when using things like
+            # multiprocessing.Queue which rely on a separate i/o thread
             os._exit(0)
 
 
