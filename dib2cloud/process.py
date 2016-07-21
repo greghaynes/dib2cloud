@@ -1,7 +1,7 @@
+import errno
 import os
 import signal
 import subprocess
-import sys
 import time
 
 import yaml
@@ -10,7 +10,13 @@ from dib2cloud import util
 
 
 def sigchld_handler(signum, frame):
-    os.waitpid(0, 0)
+    try:
+        os.waitpid(0, 0)
+    except OSError as e:
+        if e.errno == errno.ECHILD:
+            # Child process was already reaped
+            pass
+
 
 signal.signal(signal.SIGCHLD, sigchld_handler)
 

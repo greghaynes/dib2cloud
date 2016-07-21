@@ -258,8 +258,10 @@ class TestApp(base.TestCase):
 class TestPythonProcess(base.TestCase):
     def test_python_process(self):
         recv, send = multiprocessing.Pipe()
+
         def put_pid(dest):
             send.send(os.getpid())
+
         proc = process.PythonProcess(put_pid, send)
         ch_pid = proc.start()
         queue_pid = recv.recv()
