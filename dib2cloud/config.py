@@ -3,7 +3,8 @@ import os
 import yaml
 
 
-DEFAULT_PROCESSFILE_DIR = os.path.expanduser('~/.dib2cloud/run')
+DEFAULT_BUILD_PROCESSFILE_DIR = os.path.expanduser('~/.dib2cloud/run/builds')
+DEFAULT_UPLOAD_PROCESSFILE_DIR = os.path.expanduser('~/.dib2cloud/run/uploads')
 DEFAULT_BUILDLOG_DIR = os.path.expanduser('~/.dib2cloud/logs/builds')
 DEFAULT_IMAGES_DIR = os.path.expanduser('~/.dib2cloud/images')
 
@@ -49,8 +50,14 @@ class Config(ConfigDict):
                       config_dict.get('diskimages', [])]
         providers = [Provider(**x) for x in
                      config_dict.get('providers', [])]
-        processfile_dir = config_dict.get('processfile_dir',
-                                          DEFAULT_PROCESSFILE_DIR)
+        build_processfile_dir = config_dict.get(
+            'build_processfile_dir',
+            DEFAULT_BUILD_PROCESSFILE_DIR
+        )
+        upload_processfile_dir = config_dict.get(
+            'upload_processfile_dir',
+            DEFAULT_UPLOAD_PROCESSFILE_DIR
+        )
         buildlog_dir = config_dict.get('buildlog_dir',
                                        DEFAULT_BUILDLOG_DIR)
         images_dir = config_dict.get('images_dir',
@@ -58,35 +65,43 @@ class Config(ConfigDict):
 
         return Config(diskimages=diskimages,
                       providers=providers,
-                      processfile_dir=processfile_dir,
+                      build_processfile_dir=build_processfile_dir,
+                      upload_processfile_dir=upload_processfile_dir,
                       buildlog_dir=buildlog_dir,
                       images_dir=images_dir)
 
     def __init__(self, **kwargs):
         super(Config, self).__init__(['diskimages',
                                       'providers',
-                                      'processfile_dir',
+                                      'build_processfile_dir',
+                                      'upload_processfile_dir',
                                       'buildlog_dir',
                                       'images_dir'], kwargs)
-        self.build_pf_dir = os.path.join(
-            kwargs.get('processfile_dir', DEFAULT_PROCESSFILE_DIR),
-            'builds'
+        self.build_processfile_dir = kwargs.get(
+            'build_processfile_dir',
+            DEFAULT_BUILD_PROCESSFILE_DIR
+        )
+        self.upload_processfile_dir = kwargs.get(
+                'upload_processfile_dir',
+                DEFAULT_UPLOAD_PROCESSFILE_DIR
         )
 
     def to_yaml_file(self, path):
         with open(path, 'w') as fh:
             yaml.safe_dump(self, fh)
 
-    def get_diskimage_by_name(self, name):
+    def get_by_name(self, prop, name):
         ret = None
-        for di in self.get('diskimages', []):
-            if di['name'] == name:
+        for val in self.get(prop, []):
+            if val['name'] == name:
                 if ret is not None:
-                    raise ValueError('Multiple diskimages with name %s' % name)
+                    raise ValueError('Multiple %s properties with name %s'
+                                     % (prop, name))
                 else:
-                    ret = di
+                    ret = val
         if ret is None:
-            raise ValueError('No image with name %s found in config' % name)
+            raise ValueError('No %s with name %s found in config'
+                             % (prop, name))
         return ret
 
 

@@ -2,6 +2,9 @@ import errno
 import os
 import uuid
 
+import os_client_config
+import shade
+
 from dib2cloud import config
 from dib2cloud import process
 from dib2cloud import util
@@ -14,14 +17,44 @@ def gen_uuid():
 class Upload(process.ProcessTracker):
     process_properties = [
         'build_uuid',
+        'image_format',
+        'cloud_name',
         'glance_uuid'
     ]
 
-    def __init__(self, pf_dir, uuid, build_uuid, glance_uuid=None, pid=None):
-        super(Build, self).__init__(uuid, pf_dir, pid)
+    @staticmethod
+    def from_uuid(upload_pf_dir, uuid, build_pf_dir):
+        return process.ProcessTracker.from_uuid(Upload, upload_pf_dir, uuid,
+                                                build_pf_dir=build_pf_dir)
+
+    def __init__(self, pf_dir, build_pf_dir, uuid, build_uuid,
+                 image_format, cloud_name, glance_uuid=None, pid=None):
+        super(Upload, self).__init__(uuid, pf_dir, pid)
         self.build_uuid = build_uuid
+        self.image_format = image_format
+        self.cloud_name = cloud_name
         self.glance_uuid = glance_uuid
-        self.build = Build.from_uuid(build_uuid)
+
+        self.build = Build.from_uuid(build_pf_dir, build_uuid)
+        self._client_config = None
+
+    @property
+    def upload_name(self):
+        return '%s-%s' % (self.build.name, self.uuid)
+
+    def _get_process(self):
+        # Do some init so we can fail in the calling process if needed
+        self._cloud = shade.openstack_cloud(cloud=self.cloud_name)
+        return process.PythonProcess(self._do_upload)
+
+    def _do_upload(self):
+        filename = self.build.dest_path_for_format(self.image_format)
+        image = self._cloud.create_image(self.upload_name, filename=filename,
+                                         disk_format=self.image_format,
+                                         conatiner_format='bare')
+        self.glance_uuid = image.id
+        self.update_processfile()
+        
 
 
 class DibError(object):
@@ -88,13 +121,14 @@ class Build(process.ProcessTracker):
 
     @property
     def dest_paths(self):
-        return [os.path.join(self.dest_dir, '%s.%s' % (self.uuid, x))
-                for x in self.output_formats]
+        return [self.dest_path_for_format(x) for x in self.output_formats]
+
+    def dest_path_for_format(self, img_format):
+        return os.path.join(self.dest_dir, '%s.%s' % (self.uuid, img_format))
 
     def _get_process(self):
         log_fh = open(self.log_path, 'w')
-        proc = process.CmdProcess(self.dib_cmd, stdout=log_fh, stderr=log_fh)
-        return proc
+        return process.CmdProcess(self.dib_cmd, stdout=log_fh, stderr=log_fh)
 
     def succeeded(self):
         if self.is_running():
@@ -108,36 +142,36 @@ class App(object):
     def __init__(self, config_path):
         self.config = config.Config.from_yaml_file(config_path)
 
-    def build_image(self, name):
+    def build_image(self, name, blocking=False):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
         config = None
         if name.startswith('dib2cloud_'):
             config = config.Config.get_default_diskimages()[name]
         else:
-            config = self.config.get_diskimage_by_name(name)
+            config = self.config.get_by_name('diskimages', name)
 
-        process = Build(self.config['buildlog_dir'],
-                        os.path.join(self.config.build_pf_dir),
+        build = Build(self.config['buildlog_dir'],
+                        self.config.build_processfile_dir,
                         self.config['images_dir'],
                         config,
                         gen_uuid(),
                         output_formats)
-        process.run()
-        return process
+        build.run(blocking)
+        return build
 
     def get_local_images(self):
-        return Build.get_all(self.config.build_pf_dir)
+        return Build.get_all(self.config.build_processfile_dir)
 
-    def delete_image(self, image_id):
-        pf_path = os.path.join(self.config.build_pf_dir,
-                               '%s.processfile' % image_id)
+    def delete_image(self, build_uuid):
+        pf_path = os.path.join(self.config.build_processfile_dir,
+                               '%s.processfile' % build_uuid)
         if not os.path.exists(pf_path):
-            raise ValueError('No build with id %s found' % image_id)
+            raise ValueError('No build with id %s found' % build_uuid)
         build = Build.from_processfile(pf_path)
         if build.is_running():
             raise ValueError('Cannot delete build %s while it is running' %
-                             image_id)
+                             build_uuid)
         for path in build.dest_paths:
             try:
                 os.unlink(path)
@@ -146,3 +180,27 @@ class App(object):
                     raise
         os.unlink(pf_path)
         return build
+
+    def upload_image(self, build_uuid, provider_name, blocking=False):
+        provider_config = None
+        if provider_name.startswith('dib2cloud_'):
+            default_providers = config.Config.get_default_providers()
+            provider_config = default_providers[provider_name]
+        else:
+            provider_config = self.config.get_by_name('providers',
+                                                       provider_name)
+
+        upload = Upload(self.config.upload_processfile_dir,
+                        self.config.build_processfile_dir,
+                        gen_uuid(),
+                        build_uuid,
+                        'qcow2',
+                        provider_config['cloud'],
+                        provider_config)
+        upload.run(blocking)
+        return upload
+
+    def get_upload(self, upload_uuid):
+        return Upload.from_uuid(self.config.upload_processfile_dir, 
+                                upload_uuid,
+                                self.config.build_processfile_dir)

@@ -74,25 +74,22 @@ class ConfigFixture(ConfigFragmentFixture):
         self.path = self.tempfile.name
         self.addCleanup(self._remove_tempfile)
         self.config = self.get(self.fixture_name)
-        self.config['processfile_dir'] = tempfile.mkdtemp()
-        self.addCleanup(self._cleanup_processfile_dir)
-        self.config['buildlog_dir'] = tempfile.mkdtemp()
-        self.addCleanup(self._cleanup_buildlog_dir)
-        self.config['images_dir'] = tempfile.mkdtemp()
-        self.addCleanup(self._cleanup_images_dir)
+        self.config['build_processfile_dir'] = self._make_tempdir()
+        self.config['upload_processfile_dir'] = self._make_tempdir()
+        self.config['buildlog_dir'] = self._make_tempdir()
+        self.config['images_dir'] = self._make_tempdir()
         self.config.to_yaml_file(self.path)
+
+    def _make_tempdir(self):
+        path = tempfile.mkdtemp()
+        self.addCleanup(self._cleanup_dir, path)
+        return path
+
+    def _cleanup_dir(self, path):
+        shutil.rmtree(path)
 
     def _remove_tempfile(self):
         os.unlink(self.path)
-
-    def _cleanup_processfile_dir(self):
-        shutil.rmtree(self.config['processfile_dir'])
-
-    def _cleanup_buildlog_dir(self):
-        shutil.rmtree(self.config['buildlog_dir'])
-
-    def _cleanup_images_dir(self):
-        shutil.rmtree(self.config['images_dir'])
 
 
 class TestConfig(base.TestCase):
@@ -176,12 +173,29 @@ class TestCmd(base.TestCase):
             'status': 'deleted'}, out)
 
 
-class TestApp(base.TestCase):
+class FakeImage(object):
+    id = '1234'
+
+
+class FakeOpenstackCloud(object):
+    def __init__(self, cloud=None):
+        self.cloud = cloud
+
+    def create_image(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        return FakeImage()
+
+
+class AppTestCase(base.TestCase):
     def setUp(self):
-        super(TestApp, self).setUp()
+        super(AppTestCase, self).setUp()
 
         class FakePopen(object):
             pid = 123
+
+            def wait(self):
+                pass
 
         self.popen_cmd = None
 
@@ -208,7 +222,10 @@ class TestApp(base.TestCase):
             return FakePopen()
 
         self.useFixture(fixtures.MonkeyPatch('subprocess.Popen', mock_popen))
+        self.useFixture(fixtures.MonkeyPatch('shade.openstack_cloud',
+                                             FakeOpenstackCloud))
 
+class TestApp(AppTestCase):
     def test_build_image_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
@@ -254,9 +271,20 @@ class TestApp(base.TestCase):
         dibs = d2c.get_local_images()
         self.assertEqual(0, len(dibs))
 
+    def test_upload_simple(self):
+        config_path = self.useFixture(ConfigFixture('simple')).path
+        d2c = app.App(config_path=config_path)
+        build = d2c.build_image('test_diskimage')
+        upload = d2c.upload_image(build.uuid,
+                                  'test_provider',
+                                  blocking=True)
+        cmp_upload = d2c.get_upload(upload.uuid)
+        self.assertEqual(upload.uuid, cmp_upload.uuid)
+        self.assertEqual('1234', cmp_upload.glance_uuid)
+
 
 class TestPythonProcess(base.TestCase):
-    def test_python_process(self):
+    def test_python_process_nonblocking(self):
         recv, send = multiprocessing.Pipe()
 
         def put_pid(dest):
