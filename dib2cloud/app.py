@@ -4,7 +4,7 @@ import uuid
 
 import shade
 
-from dib2cloud import config
+import dib2cloud.config
 from dib2cloud import process
 from dib2cloud import util
 
@@ -136,14 +136,16 @@ class Build(process.ProcessTracker):
 
 class App(object):
     def __init__(self, config_path):
-        self.config = config.Config.from_yaml_file(config_path)
+        self.config = dib2cloud.config.Config.from_yaml_file(config_path)
 
     def build(self, name, blocking=False):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
-        config = None
-        if name.startswith('dib2cloud_'):
-            config = config.Config.get_default_diskimages()[name]
+        if name.startswith('dib2cloud-'):
+            try:
+                config = dib2cloud.config.Config.get_default_diskimages()[name]
+            except KeyError:
+                raise ValueError('No diskimage with name %s found' % name)
         else:
             config = self.config.get_by_name('diskimages', name)
 
@@ -179,19 +181,22 @@ class App(object):
 
     def upload(self, build_uuid, provider_name, blocking=False):
         provider_config = None
-        if provider_name.startswith('dib2cloud_'):
+        if provider_name.startswith('dib2cloud-'):
             default_providers = config.Config.get_default_providers()
             provider_config = default_providers[provider_name]
         else:
-            provider_config = self.config.get_by_name('providers',
-                                                      provider_name)
+            try:
+                provider_config = self.config.get_by_name('providers',
+                                                          provider_name)
+            except ValueError:
+                provider_config = None
 
         upload = Upload(self.config.upload_processfile_dir,
                         self.config.build_processfile_dir,
                         gen_uuid(),
                         build_uuid,
                         'qcow2',
-                        provider_config['cloud'],
+                        provider_name,
                         provider_config)
         upload.run(blocking)
         return upload

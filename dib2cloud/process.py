@@ -70,7 +70,8 @@ class CmdProcess(Process):
         self._subproc = subprocess.Popen(self._cmd,
                                          stdout=self._stdout,
                                          stderr=self._stderr)
-        self._subproc.wait()
+        if blocking:
+            self._subproc.wait()
         return self._subproc.pid
 
 

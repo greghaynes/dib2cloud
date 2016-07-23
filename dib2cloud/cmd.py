@@ -11,9 +11,14 @@ def output(out):
 
 
 def upload_summary_dict(upload):
+    status = 'uploading'
+    if upload.glance_uuid is not None:
+        status = 'completed'
+
     return {
         'upload_name': upload.upload_name,
-        'glance_uuid': upload.glance_uuid
+        'glance_uuid': upload.glance_uuid,
+        'status': status
     }
 
 
@@ -21,7 +26,7 @@ def dib_summary_dict(dib, status_str=None):
     if status_str is None:
         status = dib.succeeded()
         if status[0] is True:
-            status_str = 'built'
+            status_str = 'completed'
         else:
             if status[1] == app.DibError.StillRunning:
                 status_str = 'building'
