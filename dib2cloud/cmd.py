@@ -49,7 +49,7 @@ def cmd_build(d2c, args):
 
 
 def cmd_list_builds(d2c, args):
-    dibs = d2c.get_local_images()
+    dibs = d2c.get_builds()
     output(json.dumps(list(map(dib_summary_dict, dibs))).encode('utf-8'))
 
 

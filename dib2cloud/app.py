@@ -158,7 +158,7 @@ class App(object):
         build.run(blocking)
         return build
 
-    def get_local_images(self):
+    def get_builds(self):
         return Build.get_all(self.config.build_processfile_dir)
 
     def delete_image(self, build_uuid):

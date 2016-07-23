@@ -128,7 +128,7 @@ class FakeApp(BaseFake):
     def build(self, name):
         return FakeBuild(name)
 
-    def get_local_images(self):
+    def get_builds(self):
         return [FakeBuild()]
 
     def delete_image(self, image_id):
@@ -253,27 +253,27 @@ class TestApp(AppTestCase):
                           dib.dest_path, 'element1', 'element2'],
                          self.popen_cmd)
 
-    def test_get_local_images_empty(self):
+    def test_get_builds_empty(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        self.assertEqual([], d2c.get_local_images())
+        self.assertEqual([], d2c.get_builds())
 
-    def test_get_local_images_simple_missing_output(self):
+    def test_get_builds_simple_missing_output(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
         dib = d2c.build('test_diskimage')
         for path in dib.dest_paths:
             os.unlink(path)
-        dibs = d2c.get_local_images()
+        dibs = d2c.get_builds()
         self.assertEqual(1, len(dibs))
         self.assertEqual((False, app.DibError.OutputMissing),
                          dibs[0].succeeded())
 
-    def test_get_local_images_simple(self):
+    def test_get_builds_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
         d2c.build('test_diskimage')
-        dibs = d2c.get_local_images()
+        dibs = d2c.get_builds()
         self.assertEqual(1, len(dibs))
         self.assertEqual((True, None), dibs[0].succeeded())
 
@@ -287,7 +287,7 @@ class TestApp(AppTestCase):
         self.assertEqual(build.uuid, del_build.uuid)
 
         self.assertEqual(False, any(map(os.path.exists, build.dest_paths)))
-        dibs = d2c.get_local_images()
+        dibs = d2c.get_builds()
         self.assertEqual(0, len(dibs))
 
     def test_upload_simple(self):
