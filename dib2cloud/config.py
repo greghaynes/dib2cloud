@@ -82,8 +82,8 @@ class Config(ConfigDict):
             DEFAULT_BUILD_PROCESSFILE_DIR
         )
         self.upload_processfile_dir = kwargs.get(
-                'upload_processfile_dir',
-                DEFAULT_UPLOAD_PROCESSFILE_DIR
+            'upload_processfile_dir',
+            DEFAULT_UPLOAD_PROCESSFILE_DIR
         )
 
     def to_yaml_file(self, path):

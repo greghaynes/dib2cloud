@@ -10,6 +10,13 @@ def output(out):
     print(out)
 
 
+def upload_summary_dict(upload):
+    return {
+        'upload_name': upload.upload_name,
+        'glance_uuid': upload.glance_uuid
+    }
+
+
 def dib_summary_dict(dib, status_str=None):
     if status_str is None:
         status = dib.succeeded()
@@ -51,6 +58,11 @@ def cmd_delete_build(d2c, args):
     output(json.dumps(dib_summary_dict(dib, 'deleted')).encode('utf-8'))
 
 
+def cmd_upload(d2c, args):
+    upload = d2c.upload(args.build_id, args.cloud_name)
+    output(json.dumps(upload_summary_dict(upload)).encode('utf-8'))
+
+
 def main(argv=None):
     argv = argv or sys.argv
 
@@ -69,6 +81,11 @@ def main(argv=None):
     delete_build_subparser = subparsers.add_parser('delete-build')
     delete_build_subparser.set_defaults(func=cmd_delete_build)
     delete_build_subparser.add_argument('image_id', type=str)
+
+    upload_subparser = subparsers.add_parser('upload')
+    upload_subparser.set_defaults(func=cmd_upload)
+    upload_subparser.add_argument('build_id', type=str)
+    upload_subparser.add_argument('cloud_name', type=str)
 
     args = parser.parse_args(argv[1:])
     args.func(app.App(config_path=args.config_path), args)

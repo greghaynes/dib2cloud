@@ -2,7 +2,6 @@ import errno
 import os
 import uuid
 
-import os_client_config
 import shade
 
 from dib2cloud import config
@@ -54,7 +53,6 @@ class Upload(process.ProcessTracker):
                                          conatiner_format='bare')
         self.glance_uuid = image.id
         self.update_processfile()
-        
 
 
 class DibError(object):
@@ -152,11 +150,11 @@ class App(object):
             config = self.config.get_by_name('diskimages', name)
 
         build = Build(self.config['buildlog_dir'],
-                        self.config.build_processfile_dir,
-                        self.config['images_dir'],
-                        config,
-                        gen_uuid(),
-                        output_formats)
+                      self.config.build_processfile_dir,
+                      self.config['images_dir'],
+                      config,
+                      gen_uuid(),
+                      output_formats)
         build.run(blocking)
         return build
 
@@ -181,14 +179,14 @@ class App(object):
         os.unlink(pf_path)
         return build
 
-    def upload_image(self, build_uuid, provider_name, blocking=False):
+    def upload(self, build_uuid, provider_name, blocking=False):
         provider_config = None
         if provider_name.startswith('dib2cloud_'):
             default_providers = config.Config.get_default_providers()
             provider_config = default_providers[provider_name]
         else:
             provider_config = self.config.get_by_name('providers',
-                                                       provider_name)
+                                                      provider_name)
 
         upload = Upload(self.config.upload_processfile_dir,
                         self.config.build_processfile_dir,
@@ -201,6 +199,6 @@ class App(object):
         return upload
 
     def get_upload(self, upload_uuid):
-        return Upload.from_uuid(self.config.upload_processfile_dir, 
+        return Upload.from_uuid(self.config.upload_processfile_dir,
                                 upload_uuid,
                                 self.config.build_processfile_dir)

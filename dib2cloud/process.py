@@ -50,8 +50,8 @@ class PythonProcess(Process):
                 # Become the session and group leader
                 os.setsid()
                 # Use _exit so we don't call any atexit registered functions of
-                # our parent. This has the downside of not flushing any stdio fd's
-                # so care must be taken when using things like
+                # our parent. This has the downside of not flushing any stdio
+                # fd's so care must be taken when using things like
                 # multiprocessing.Queue which rely on a separate i/o thread
                 os._exit(0)
         else:

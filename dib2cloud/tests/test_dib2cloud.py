@@ -105,6 +105,12 @@ class BaseFake(object):
         self.init_kwargs = kwargs
 
 
+class FakeUpload(BaseFake):
+    build_uuid = 'fake-build-uuid'
+    upload_name = 'fake-upload-1234'
+    glance_uuid = 'glance-uuid-1234'
+
+
 class FakeBuild(BaseFake):
     name = 'fake_diskimage'
     uuid = 'fake-uuid'
@@ -125,8 +131,11 @@ class FakeApp(BaseFake):
     def get_local_images(self):
         return [FakeBuild()]
 
-    def delete_image(eslf, image_id):
+    def delete_image(self, image_id):
         return FakeBuild()
+
+    def upload(self, build_uuid, provider_name):
+        return FakeUpload()
 
 
 class TestCmd(base.TestCase):
@@ -171,6 +180,15 @@ class TestCmd(base.TestCase):
             'name': 'fake_diskimage',
             'pid': None,
             'status': 'deleted'}, out)
+
+    def test_upload_image(self):
+        cmd.main(['dib2cloud', '--config', 'some_config',
+                  'upload', 'test_diskimage', 'test_cloud'])
+        out = json.loads(self.out.getvalue().decode('utf-8'))
+        self.assertEqual({
+            'glance_uuid': 'glance-uuid-1234',
+            'upload_name': 'fake-upload-1234'
+        }, out)
 
 
 class FakeImage(object):
@@ -225,6 +243,7 @@ class AppTestCase(base.TestCase):
         self.useFixture(fixtures.MonkeyPatch('shade.openstack_cloud',
                                              FakeOpenstackCloud))
 
+
 class TestApp(AppTestCase):
     def test_build_image_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
@@ -275,9 +294,7 @@ class TestApp(AppTestCase):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
         build = d2c.build_image('test_diskimage')
-        upload = d2c.upload_image(build.uuid,
-                                  'test_provider',
-                                  blocking=True)
+        upload = d2c.upload(build.uuid, 'test_provider', blocking=True)
         cmp_upload = d2c.get_upload(upload.uuid)
         self.assertEqual(upload.uuid, cmp_upload.uuid)
         self.assertEqual('1234', cmp_upload.glance_uuid)
