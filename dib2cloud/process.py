@@ -101,6 +101,19 @@ class ProcessTracker(object):
             return pt_type(**kwargs)
 
     @classmethod
+    def get_all(cls, pt_type, pf_dir, **extra_kwargs):
+        pts = []
+        if os.path.exists(pf_dir):
+            for pf in os.listdir(pf_dir):
+                if pf.endswith('processfile'):
+                    pts.append(cls.from_processfile(
+                        pt_type,
+                        os.path.join(pf_dir, pf),
+                        **extra_kwargs
+                    ))
+        return pts
+
+    @classmethod
     def from_uuid(cls, pt_type, pf_dir, uuid, **extra_kwargs):
         return cls.from_processfile(pt_type,
                                     processfile_for_uuid(pf_dir, uuid),

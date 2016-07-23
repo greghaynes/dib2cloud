@@ -22,6 +22,11 @@ class Upload(process.ProcessTracker):
     ]
 
     @staticmethod
+    def get_all(pf_dir, build_pf_dir):
+        return process.ProcessTracker.get_all(Upload, pf_dir,
+                                              build_pf_dir=build_pf_dir)
+
+    @staticmethod
     def from_uuid(upload_pf_dir, uuid, build_pf_dir):
         return process.ProcessTracker.from_uuid(Upload, upload_pf_dir, uuid,
                                                 build_pf_dir=build_pf_dir)
@@ -70,14 +75,7 @@ class Build(process.ProcessTracker):
 
     @staticmethod
     def get_all(pf_dir):
-        builds = []
-        if os.path.exists(pf_dir):
-            for pf in os.listdir(pf_dir):
-                if pf.endswith('processfile'):
-                    builds.append(Build.from_processfile(
-                        os.path.join(pf_dir, pf)
-                    ))
-        return builds
+        return process.ProcessTracker.get_all(Build, pf_dir)
 
     @staticmethod
     def from_processfile(pf):
@@ -202,3 +200,7 @@ class App(object):
         return Upload.from_uuid(self.config.upload_processfile_dir,
                                 upload_uuid,
                                 self.config.build_processfile_dir)
+
+    def get_uploads(self):
+        return Upload.get_all(self.config.upload_processfile_dir,
+                              self.config.build_processfile_dir)

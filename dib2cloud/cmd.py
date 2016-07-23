@@ -63,6 +63,11 @@ def cmd_upload(d2c, args):
     output(json.dumps(upload_summary_dict(upload)).encode('utf-8'))
 
 
+def cmd_list_uploads(d2c, args):
+    uploads = d2c.list_uploads()
+    output(json.dumps(list(map(upload_summary_dict, uploads))).encode('utf-8'))
+
+
 def main(argv=None):
     argv = argv or sys.argv
 
@@ -86,6 +91,9 @@ def main(argv=None):
     upload_subparser.set_defaults(func=cmd_upload)
     upload_subparser.add_argument('build_id', type=str)
     upload_subparser.add_argument('cloud_name', type=str)
+
+    list_uploads_subparser = subparsers.add_parser('list-uploads')
+    list_uploads_subparser.set_defaults(func=cmd_list_uploads)
 
     args = parser.parse_args(argv[1:])
     args.func(app.App(config_path=args.config_path), args)

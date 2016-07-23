@@ -137,6 +137,9 @@ class FakeApp(BaseFake):
     def upload(self, build_uuid, provider_name):
         return FakeUpload()
 
+    def list_uploads(self):
+        return [FakeUpload()]
+
 
 class TestCmd(base.TestCase):
     def setUp(self):
@@ -189,6 +192,14 @@ class TestCmd(base.TestCase):
             'glance_uuid': 'glance-uuid-1234',
             'upload_name': 'fake-upload-1234'
         }, out)
+
+    def test_list_uploads(self):
+        cmd.main(['dib2cloud', '--config', 'some_config', 'list-uploads'])
+        out = json.loads(self.out.getvalue().decode('utf-8'))
+        self.assertEqual([{
+            'glance_uuid': 'glance-uuid-1234',
+            'upload_name': 'fake-upload-1234'
+        }], out)
 
 
 class FakeImage(object):
