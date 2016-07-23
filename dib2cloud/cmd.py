@@ -64,7 +64,7 @@ def cmd_upload(d2c, args):
 
 
 def cmd_list_uploads(d2c, args):
-    uploads = d2c.list_uploads()
+    uploads = d2c.get_uploads()
     output(json.dumps(list(map(upload_summary_dict, uploads))).encode('utf-8'))
 
 

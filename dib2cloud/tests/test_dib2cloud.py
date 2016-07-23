@@ -137,7 +137,7 @@ class FakeApp(BaseFake):
     def upload(self, build_uuid, provider_name):
         return FakeUpload()
 
-    def list_uploads(self):
+    def get_uploads(self):
         return [FakeUpload()]
 
 
