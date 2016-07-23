@@ -80,7 +80,8 @@ By default configuration is specified in `/etc/dib2cloud.yaml`. It can also
 be specified on the command line using the `--config-path` argument.
 
 Images are specified in the configuration and several images begining
-with `dib2cloud_` are always available.
+with `dib2cloud-` are defined by default. A configuration is not required
+to use dib2cloud, but it is useful for building custom images.
 
 Example configuration:
 
