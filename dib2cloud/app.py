@@ -161,7 +161,7 @@ class App(object):
     def get_builds(self):
         return Build.get_all(self.config.build_processfile_dir)
 
-    def delete_image(self, build_uuid):
+    def delete_build(self, build_uuid):
         pf_path = os.path.join(self.config.build_processfile_dir,
                                '%s.processfile' % build_uuid)
         if not os.path.exists(pf_path):

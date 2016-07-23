@@ -131,7 +131,7 @@ class FakeApp(BaseFake):
     def get_builds(self):
         return [FakeBuild()]
 
-    def delete_image(self, image_id):
+    def delete_build(self, image_id):
         return FakeBuild()
 
     def upload(self, build_uuid, provider_name):
@@ -283,7 +283,7 @@ class TestApp(AppTestCase):
         build = d2c.build('test_diskimage')
         self.assertEqual(True, all(map(os.path.exists, build.dest_paths)))
 
-        del_build = d2c.delete_image('%s' % build.uuid)
+        del_build = d2c.delete_build('%s' % build.uuid)
         self.assertEqual(build.uuid, del_build.uuid)
 
         self.assertEqual(False, any(map(os.path.exists, build.dest_paths)))

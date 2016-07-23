@@ -54,7 +54,7 @@ def cmd_list_builds(d2c, args):
 
 
 def cmd_delete_build(d2c, args):
-    dib = d2c.delete_image(args.image_id)
+    dib = d2c.delete_build(args.build_id)
     output(json.dumps(dib_summary_dict(dib, 'deleted')).encode('utf-8'))
 
 
@@ -80,7 +80,7 @@ def main(argv=None):
 
     delete_build_subparser = subparsers.add_parser('delete-build')
     delete_build_subparser.set_defaults(func=cmd_delete_build)
-    delete_build_subparser.add_argument('image_id', type=str)
+    delete_build_subparser.add_argument('build_id', type=str)
 
     upload_subparser = subparsers.add_parser('upload')
     upload_subparser.set_defaults(func=cmd_upload)
