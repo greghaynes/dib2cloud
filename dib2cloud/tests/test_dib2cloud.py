@@ -190,7 +190,8 @@ class TestCmd(base.TestCase):
         out = json.loads(self.out.getvalue().decode('utf-8'))
         self.assertEqual({
             'glance_uuid': 'glance-uuid-1234',
-            'upload_name': 'fake-upload-1234'
+            'upload_name': 'fake-upload-1234',
+            'status': 'completed'
         }, out)
 
     def test_list_uploads(self):
@@ -198,7 +199,8 @@ class TestCmd(base.TestCase):
         out = json.loads(self.out.getvalue().decode('utf-8'))
         self.assertEqual([{
             'glance_uuid': 'glance-uuid-1234',
-            'upload_name': 'fake-upload-1234'
+            'upload_name': 'fake-upload-1234',
+            'status': 'completed'
         }], out)
 
 

@@ -182,7 +182,7 @@ class App(object):
     def upload(self, build_uuid, provider_name, blocking=False):
         provider_config = None
         if provider_name.startswith('dib2cloud-'):
-            default_providers = config.Config.get_default_providers()
+            default_providers = dib2cloud.config.Config.get_default_providers()
             provider_config = default_providers[provider_name]
         else:
             try:
