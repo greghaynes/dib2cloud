@@ -60,6 +60,18 @@ Delete a build
 
     dib2cloud delete-build <id>
 
+Upload an image (cloud-name is a cloud defined in os-client-config).
+
+.. code:: bash
+
+    dib2cloud upload <id> <cloud-name>
+
+View uploads
+
+.. code:: bash
+
+    dib2cloud list-uploads
+
 
 Configuration
 -------------
