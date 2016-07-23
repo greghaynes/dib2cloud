@@ -140,7 +140,7 @@ class App(object):
     def __init__(self, config_path):
         self.config = config.Config.from_yaml_file(config_path)
 
-    def build_image(self, name, blocking=False):
+    def build(self, name, blocking=False):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
         config = None

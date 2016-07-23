@@ -125,7 +125,7 @@ class FakeBuild(BaseFake):
 
 
 class FakeApp(BaseFake):
-    def build_image(self, name):
+    def build(self, name):
         return FakeBuild(name)
 
     def get_local_images(self):
@@ -146,7 +146,7 @@ class TestCmd(base.TestCase):
         self.useFixture(fixtures.MonkeyPatch('dib2cloud.cmd.output',
                                              self.out.write))
 
-    def test_build_image(self):
+    def test_build(self):
         cmd.main(['dib2cloud', '--config', 'some_config',
                   'build', 'test_diskimage'])
         out = json.loads(self.out.getvalue().decode('utf-8'))
@@ -245,10 +245,10 @@ class AppTestCase(base.TestCase):
 
 
 class TestApp(AppTestCase):
-    def test_build_image_simple(self):
+    def test_build_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        dib = d2c.build_image('test_diskimage')
+        dib = d2c.build('test_diskimage')
         self.assertEqual(['disk-image-create', '-t', 'qcow2', '-o',
                           dib.dest_path, 'element1', 'element2'],
                          self.popen_cmd)
@@ -261,7 +261,7 @@ class TestApp(AppTestCase):
     def test_get_local_images_simple_missing_output(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        dib = d2c.build_image('test_diskimage')
+        dib = d2c.build('test_diskimage')
         for path in dib.dest_paths:
             os.unlink(path)
         dibs = d2c.get_local_images()
@@ -272,7 +272,7 @@ class TestApp(AppTestCase):
     def test_get_local_images_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        d2c.build_image('test_diskimage')
+        d2c.build('test_diskimage')
         dibs = d2c.get_local_images()
         self.assertEqual(1, len(dibs))
         self.assertEqual((True, None), dibs[0].succeeded())
@@ -280,7 +280,7 @@ class TestApp(AppTestCase):
     def test_delete_build_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        build = d2c.build_image('test_diskimage')
+        build = d2c.build('test_diskimage')
         self.assertEqual(True, all(map(os.path.exists, build.dest_paths)))
 
         del_build = d2c.delete_image('%s' % build.uuid)
@@ -293,7 +293,7 @@ class TestApp(AppTestCase):
     def test_upload_simple(self):
         config_path = self.useFixture(ConfigFixture('simple')).path
         d2c = app.App(config_path=config_path)
-        build = d2c.build_image('test_diskimage')
+        build = d2c.build('test_diskimage')
         upload = d2c.upload(build.uuid, 'test_provider', blocking=True)
         cmp_upload = d2c.get_upload(upload.uuid)
         self.assertEqual(upload.uuid, cmp_upload.uuid)

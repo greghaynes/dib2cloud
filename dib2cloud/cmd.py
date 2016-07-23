@@ -44,7 +44,7 @@ def dib_summary_dict(dib, status_str=None):
 
 
 def cmd_build(d2c, args):
-    dib = d2c.build_image(args.image_name)
+    dib = d2c.build(args.image_name)
     output(json.dumps(dib_summary_dict(dib)).encode('utf-8'))
 
 
