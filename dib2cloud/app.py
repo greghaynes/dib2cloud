@@ -88,7 +88,7 @@ class Build(process.ProcessTracker):
     def __init__(self, log_dir, pf_dir, images_dir,
                  image_config, uuid, output_formats, pid=None):
         super(Build, self).__init__(uuid, pf_dir, pid)
-        self.name = image_config['name']
+        self.name = image_config.get('name')
         self.log_dir = log_dir
         self.images_dir = images_dir
         self.image_config = image_config
@@ -97,11 +97,11 @@ class Build(process.ProcessTracker):
     @property
     def dib_cmd(self):
         return ['disk-image-create', '-t', ','.join(self.output_formats),
-                '-o', self.dest_path] + self.image_config['elements']
+                '-o', self.dest_path] + self.image_config.get('elements')
 
     @property
     def log_path(self):
-        log_dir = os.path.join(self.log_dir, self.image_config['name'])
+        log_dir = os.path.join(self.log_dir, self.name)
         util.assert_dir(log_dir)
         return os.path.join(log_dir, '%s.log' % self.uuid)
 
@@ -141,17 +141,11 @@ class App(object):
     def build(self, name, blocking=False):
         # TODO(greghaynes) determine output_formats based on provider
         output_formats = ['qcow2']
-        if name.startswith('dib2cloud-'):
-            try:
-                config = dib2cloud.config.Config.get_default_diskimages()[name]
-            except KeyError:
-                raise ValueError('No diskimage with name %s found' % name)
-        else:
-            config = self.config.get_by_name('diskimages', name)
+        config = self.config.get('diskimages').get_one('name', name)
 
-        build = Build(self.config['buildlog_dir'],
-                      self.config.build_processfile_dir,
-                      self.config['images_dir'],
+        build = Build(self.config.get('buildlog_dir'),
+                      self.config.get('build_processfile_dir'),
+                      self.config.get('images_dir'),
                       config,
                       gen_uuid(),
                       output_formats)
@@ -159,10 +153,10 @@ class App(object):
         return build
 
     def get_builds(self):
-        return Build.get_all(self.config.build_processfile_dir)
+        return Build.get_all(self.config.get('build_processfile_dir'))
 
     def delete_build(self, build_uuid):
-        pf_path = os.path.join(self.config.build_processfile_dir,
+        pf_path = os.path.join(self.config.get('build_processfile_dir'),
                                '%s.processfile' % build_uuid)
         if not os.path.exists(pf_path):
             raise ValueError('No build with id %s found' % build_uuid)
@@ -180,19 +174,11 @@ class App(object):
         return build
 
     def upload(self, build_uuid, provider_name, blocking=False):
-        provider_config = None
-        if provider_name.startswith('dib2cloud-'):
-            default_providers = dib2cloud.config.Config.get_default_providers()
-            provider_config = default_providers[provider_name]
-        else:
-            try:
-                provider_config = self.config.get_by_name('providers',
-                                                          provider_name)
-            except ValueError:
-                provider_config = None
-
-        upload = Upload(self.config.upload_processfile_dir,
-                        self.config.build_processfile_dir,
+        provider_config = self.config.get('providers').get_one(
+            'name', provider_name
+        )
+        upload = Upload(self.config.get('upload_processfile_dir'),
+                        self.config.get('build_processfile_dir'),
                         gen_uuid(),
                         build_uuid,
                         'qcow2',
@@ -202,9 +188,9 @@ class App(object):
         return upload
 
     def get_upload(self, upload_uuid):
-        return Upload.from_uuid(self.config.upload_processfile_dir,
+        return Upload.from_uuid(self.config.get('upload_processfile_dir'),
                                 upload_uuid,
-                                self.config.build_processfile_dir)
+                                self.config.get('build_processfile_dir'))
 
     def get_uploads(self):
         return Upload.get_all(self.config.upload_processfile_dir,

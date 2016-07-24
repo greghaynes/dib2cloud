@@ -46,38 +46,41 @@ class ConfigFragmentFixture(fixtures.Fixture):
 
 class ProviderConfigFixture(ConfigFragmentFixture):
     _configs = {
-        'simple': config.Provider(name='test_provider',
-                                  cloud='dib2cloud_test')
+        'simple': {
+            'name': 'test_provider',
+            'cloud': 'dib2cloud_test'
+        }
     }
 
 
 class DiskimageConfigFixture(ConfigFragmentFixture):
     _configs = {
-        'simple': config.Diskimage(name='test_diskimage',
-                                   elements=['element1', 'element2'],
-                                   release='releaseno',
-                                   env_vars={'var1': 'val1',
-                                             'var2': 'val2'})
+        'simple': {
+            'name': 'test_diskimage',
+            'elements': ['element1', 'element2'],
+            'env_vars': {'var1': 'val1', 'var2': 'val2'}
+        }
     }
 
 
 class ConfigFixture(ConfigFragmentFixture):
     _configs = {
-        'simple': config.Config(
-            diskimages=[DiskimageConfigFixture.get('simple')],
-            providers=[ProviderConfigFixture.get('simple')],
-        )
+        'simple': {
+            'diskimages': [DiskimageConfigFixture.get('simple')],
+            'providers': [ProviderConfigFixture.get('simple')]
+        }
     }
 
     def _setUp(self):
         self.tempfile = tempfile.NamedTemporaryFile(delete=False)
         self.path = self.tempfile.name
         self.addCleanup(self._remove_tempfile)
-        self.config = self.get(self.fixture_name)
-        self.config['build_processfile_dir'] = self._make_tempdir()
-        self.config['upload_processfile_dir'] = self._make_tempdir()
-        self.config['buildlog_dir'] = self._make_tempdir()
-        self.config['images_dir'] = self._make_tempdir()
+        config_dict = self.get(self.fixture_name)
+        config_dict['build_processfile_dir'] = self._make_tempdir()
+        config_dict['upload_processfile_dir'] = self._make_tempdir()
+        config_dict['buildlog_dir'] = self._make_tempdir()
+        config_dict['images_dir'] = self._make_tempdir()
+        self.config = config.Config(**config_dict)
         self.config.to_yaml_file(self.path)
 
     def _make_tempdir(self):
@@ -96,7 +99,8 @@ class TestConfig(base.TestCase):
     def test_simple_config_inflation(self):
         config_fxtr = self.useFixture(ConfigFixture('simple'))
         loaded_config = config.Config.from_yaml_file(config_fxtr.path)
-        self.assertEqual(config_fxtr.config, loaded_config)
+        self.assertEqual(config_fxtr.config.flatten(),
+                         loaded_config.flatten())
 
 
 class BaseFake(object):
