@@ -16,7 +16,9 @@ def gen_uuid():
 class Upload(process.ProcessTracker):
     process_properties = [
         'build_uuid',
+        'build_name',
         'image_format',
+        'image_path',
         'cloud_name',
         'glance_uuid'
     ]
@@ -32,19 +34,20 @@ class Upload(process.ProcessTracker):
                                                 build_pf_dir=build_pf_dir)
 
     def __init__(self, pf_dir, build_pf_dir, uuid, build_uuid,
-                 image_format, cloud_name, glance_uuid=None, pid=None):
+                 image_format, cloud_name, build_name=None, image_path=None,
+                 glance_uuid=None, pid=None):
         super(Upload, self).__init__(uuid, pf_dir, pid)
         self.build_uuid = build_uuid
         self.image_format = image_format
         self.cloud_name = cloud_name
         self.glance_uuid = glance_uuid
-
-        self.build = Build.from_uuid(build_pf_dir, build_uuid)
+        self.image_path = image_path
+        self.build_name = build_name
         self._client_config = None
 
     @property
     def upload_name(self):
-        return '%s-%s' % (self.build.name, self.uuid)
+        return '%s-%s' % (self.build_name, self.uuid)
 
     def _get_process(self):
         # Do some init so we can fail in the calling process if needed
@@ -52,8 +55,8 @@ class Upload(process.ProcessTracker):
         return process.PythonProcess(self._do_upload)
 
     def _do_upload(self):
-        filename = self.build.dest_path_for_format(self.image_format)
-        image = self._cloud.create_image(self.upload_name, filename=filename,
+        image = self._cloud.create_image(self.upload_name,
+                                         filename=self.image_path,
                                          disk_format=self.image_format,
                                          conatiner_format='bare')
         self.glance_uuid = image.id
@@ -174,16 +177,17 @@ class App(object):
         return build
 
     def upload(self, build_uuid, provider_name, blocking=False):
-        provider_config = self.config.get('providers').get_one(
-            'name', provider_name
-        )
+        build_pf_dir = self.config.get('build_processfile_dir')
+        build = Build.from_uuid(build_pf_dir, build_uuid)
+        image_format = 'qcow2'
         upload = Upload(self.config.get('upload_processfile_dir'),
-                        self.config.get('build_processfile_dir'),
+                        build_pf_dir,
                         gen_uuid(),
                         build_uuid,
-                        'qcow2',
+                        image_format,
                         provider_name,
-                        provider_config)
+                        build.name,
+                        build.dest_path_for_format(image_format))
         upload.run(blocking)
         return upload
 
