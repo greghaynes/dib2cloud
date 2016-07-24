@@ -145,8 +145,10 @@ class Provider(ConfigDict):
 
 class DiskimagesCollection(ConfigCollection):
     defaults = [
-        Diskimage(name='dib2cloud-ubuntu-debootstrap',
-                  elements=['ubuntu-minimal', 'simple-init'])
+        Diskimage(name='dib2cloud-ubuntu',
+                  elements=['ubuntu-minimal', 'simple-init']),
+        Diskimage(name='dib2cloud-fedora',
+                  elements=['fedora-minimal', 'simple-init'])
     ]
 
 
