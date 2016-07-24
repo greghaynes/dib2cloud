@@ -193,5 +193,5 @@ class App(object):
                                 self.config.get('build_processfile_dir'))
 
     def get_uploads(self):
-        return Upload.get_all(self.config.upload_processfile_dir,
-                              self.config.build_processfile_dir)
+        return Upload.get_all(self.config.get('upload_processfile_dir'),
+                              self.config.get('build_processfile_dir'))

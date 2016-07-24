@@ -155,7 +155,9 @@ class Config(ConfigDict):
         'build_processfile_dir': DEFAULT_BUILD_PROCESSFILE_DIR,
         'upload_processfile_dir': DEFAULT_UPLOAD_PROCESSFILE_DIR,
         'buildlog_dir': DEFAULT_BUILDLOG_DIR,
-        'images_dir': DEFAULT_IMAGES_DIR
+        'images_dir': DEFAULT_IMAGES_DIR,
+        'providers': [],
+        'diskimages': []
     }
 
     @classmethod
